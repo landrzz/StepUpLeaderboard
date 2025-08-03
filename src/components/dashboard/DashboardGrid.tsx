@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Target, TrendingUp, Users, Medal, Crown } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { DataService } from "@/lib/dataService";
 
 interface StatsCardProps {
   title: string;
@@ -122,10 +123,88 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
 };
 
 const DashboardGrid = ({
-  statsCards = defaultStatsCards,
+  statsCards,
   isLoading = false,
 }: DashboardGridProps) => {
   const [loading, setLoading] = useState(isLoading);
+  const [realStatsCards, setRealStatsCards] = useState<StatsCardProps[]>([]);
+  const [hasData, setHasData] = useState(false);
+
+  // Fetch real data when component mounts
+  useEffect(() => {
+    const fetchRealData = async () => {
+      try {
+        const leaderboardData = await DataService.getRealLeaderboardData();
+        const participantStats = await DataService.getRealParticipantStats();
+        
+        if (leaderboardData.length > 0) {
+          // Calculate real statistics from the data
+          const topPerformer = leaderboardData[0];
+          const totalSteps = leaderboardData.reduce((sum, entry) => sum + entry.steps, 0);
+          const totalDistance = leaderboardData.reduce((sum, entry) => sum + parseFloat(entry.distance_km || '0'), 0);
+          const avgSteps = Math.round(totalSteps / leaderboardData.length);
+          
+          // Find most improved (for now, just use second place or a placeholder)
+          const mostImproved = leaderboardData[1] || leaderboardData[0];
+          
+          const realStats: StatsCardProps[] = [
+            {
+              title: "Top Performer",
+              value: topPerformer.participant?.name || "N/A",
+              subtitle: `${topPerformer.steps.toLocaleString()} steps this week`,
+              icon: <Crown className="h-5 w-5" />,
+              color: "step-orange",
+            },
+            {
+              title: "Weekly Leader",
+              value: topPerformer.participant?.name || "N/A",
+              subtitle: `${topPerformer.steps.toLocaleString()} total steps`,
+              icon: <Trophy className="h-5 w-5" />,
+              color: "step-green",
+            },
+            {
+              title: "Most Improved",
+              value: mostImproved.participant?.name || "N/A",
+              subtitle: "Great progress this week!",
+              icon: <TrendingUp className="h-5 w-5" />,
+              color: "step-teal",
+            },
+            {
+              title: "Active Participants",
+              value: leaderboardData.length.toString(),
+              subtitle: "Joined this week's challenge",
+              icon: <Users className="h-5 w-5" />,
+              color: "step-yellow",
+            },
+            {
+              title: "Total Distance",
+              value: `${totalDistance.toFixed(1)} km`,
+              subtitle: "Covered by all participants",
+              icon: <Target className="h-5 w-5" />,
+              color: "step-red",
+            },
+            {
+              title: "Average Steps",
+              value: avgSteps.toLocaleString(),
+              subtitle: "Per participant this week",
+              icon: <Medal className="h-5 w-5" />,
+              color: "step-green",
+            },
+          ];
+          
+          setRealStatsCards(realStats);
+          setHasData(true);
+        } else {
+          setHasData(false);
+        }
+      } catch (error) {
+        console.error('Error fetching real data:', error);
+        setHasData(false);
+      }
+    };
+
+    fetchRealData();
+  }, []);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -136,6 +215,9 @@ const DashboardGrid = ({
       return () => clearTimeout(timer);
     }
   }, [isLoading]);
+
+  // Use provided statsCards, real data, or show empty state
+  const displayCards = statsCards || (hasData ? realStatsCards : []);
 
   if (loading) {
     return (
@@ -172,6 +254,23 @@ const DashboardGrid = ({
     );
   }
 
+  // Show empty state if no data
+  if (!loading && displayCards.length === 0) {
+    return (
+      <div className="p-6 h-full flex items-center justify-center">
+        <div className="text-center">
+          <Trophy className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+            No Statistics Available
+          </h3>
+          <p className="text-gray-500">
+            Upload step data to see challenge statistics
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 h-full">
       <div className="mb-6">
@@ -184,7 +283,7 @@ const DashboardGrid = ({
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {/* Stats Cards */}
-        {statsCards.map((card, index) => (
+        {displayCards.map((card, index) => (
           <StatsCard key={index} {...card} />
         ))}
       </div>

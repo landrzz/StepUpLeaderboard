@@ -3,18 +3,39 @@ import TopNavigation from "../dashboard/layout/TopNavigation";
 import Sidebar from "../dashboard/layout/Sidebar";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import Leaderboard from "../dashboard/TaskBoard";
+import EmptyState from "../dashboard/EmptyState";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Trophy, BarChart3, Calendar, Users } from "lucide-react";
+import { RefreshCw, Trophy, BarChart3, Calendar, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
+import GroupManager from "../groups/GroupManager";
+import { DataService } from "@/lib/dataService";
 
 const Home = () => {
   const [loading, setLoading] = useState(false);
   const [activeView, setActiveView] = useState("leaderboard");
+  const [hasRealData, setHasRealData] = useState<boolean | null>(null); // null = loading, boolean = result
+  const [showUpload, setShowUpload] = useState(false);
   const { groupId } = useParams();
   const { user } = useAuth();
   const isPublicView = !!groupId;
+
+  // Check for real leaderboard data when component mounts
+  useEffect(() => {
+    const checkForRealData = async () => {
+      try {
+        const leaderboardData = await DataService.getRealLeaderboardData();
+        const hasData = leaderboardData.length > 0;
+        setHasRealData(hasData);
+      } catch (error) {
+        console.error('Error checking for real data:', error);
+        setHasRealData(false);
+      }
+    };
+
+    checkForRealData();
+  }, []);
 
   // Function to trigger loading state for demonstration
   const handleRefresh = () => {
@@ -23,6 +44,12 @@ const Home = () => {
     setTimeout(() => {
       setLoading(false);
     }, 2000);
+  };
+
+  // Handle upload button click
+  const handleUploadClick = () => {
+    setShowUpload(true);
+    setActiveView("leaderboard"); // Switch to leaderboard view to show the upload interface
   };
 
   const sidebarItems = [
@@ -45,6 +72,11 @@ const Home = () => {
       icon: <Users size={20} />,
       label: "Participants",
       isActive: activeView === "participants",
+    },
+    {
+      icon: <Settings size={20} />,
+      label: "Groups",
+      isActive: activeView === "groups",
     },
   ];
 
@@ -144,13 +176,34 @@ const Home = () => {
               "transition-all duration-300 ease-in-out",
             )}
           >
-            {(activeView === "leaderboard" || activeView === "statistics") && (
+            {activeView === "leaderboard" && hasRealData === false && !showUpload && (
+              <EmptyState onUploadClick={handleUploadClick} />
+            )}
+            {activeView === "leaderboard" && (hasRealData === true || showUpload) && (
+              <>
+                {hasRealData === true && <DashboardGrid isLoading={loading} />}
+                <Leaderboard 
+                  isLoading={loading} 
+                  showUpload={showUpload}
+                  onUploadClose={() => setShowUpload(false)}
+                />
+              </>
+            )}
+            {activeView === "leaderboard" && hasRealData === null && (
+              <div className="flex justify-center items-center min-h-[60vh]">
+                <div className="text-center">
+                  <RefreshCw className="h-8 w-8 animate-spin text-step-teal mx-auto mb-4" />
+                  <p className="text-gray-600">Checking for data...</p>
+                </div>
+              </div>
+            )}
+            {(activeView === "statistics" && hasRealData === true) && (
               <DashboardGrid isLoading={loading} />
             )}
-            {activeView === "leaderboard" && (
-              <Leaderboard isLoading={loading} />
+            {activeView === "statistics" && hasRealData === false && (
+              <EmptyState onUploadClick={handleUploadClick} />
             )}
-            {activeView === "statistics" && (
+            {activeView === "statistics" && hasRealData === true && (
               <div className="text-center py-12">
                 <BarChart3 className="h-16 w-16 text-step-teal mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-step-teal mb-2">
@@ -159,6 +212,14 @@ const Home = () => {
                 <p className="text-gray-600">
                   Advanced analytics and performance insights coming soon
                 </p>
+              </div>
+            )}
+            {activeView === "statistics" && hasRealData === null && (
+              <div className="flex justify-center items-center min-h-[60vh]">
+                <div className="text-center">
+                  <RefreshCw className="h-8 w-8 animate-spin text-step-teal mx-auto mb-4" />
+                  <p className="text-gray-600">Checking for data...</p>
+                </div>
               </div>
             )}
             {activeView === "weeklyhistory" && (
@@ -182,6 +243,9 @@ const Home = () => {
                   Manage participants and team assignments coming soon
                 </p>
               </div>
+            )}
+            {activeView === "groups" && (
+              <GroupManager />
             )}
           </div>
         </main>

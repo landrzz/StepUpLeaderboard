@@ -9,6 +9,7 @@ import Home from "./components/pages/home";
 import { AuthProvider, useAuth } from "../supabase/auth";
 import { Toaster } from "./components/ui/toaster";
 import { LoadingScreen, LoadingSpinner } from "./components/ui/loading-spinner";
+import GroupInvite from "./components/groups/GroupInvite";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -41,7 +42,7 @@ function AppRoutes() {
         />
         <Route path="/success" element={<Success />} />
         <Route path="/demo" element={<Dashboard />} />
-        <Route path="/group/:groupId" element={<Dashboard />} />
+        <Route path="/group/:groupId" element={<GroupInvite />} />
       </Routes>
       {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
     </>

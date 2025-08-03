@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { motion } from "framer-motion";
+import { DataService } from "@/lib/dataService";
 
 interface Participant {
   id: string;
@@ -47,6 +48,8 @@ interface LeaderboardProps {
   sortColumn?: string;
   sortDirection?: "asc" | "desc";
   isLoading?: boolean;
+  showUpload?: boolean;
+  onUploadClose?: () => void;
 }
 
 const defaultParticipants: Participant[] = [
@@ -98,16 +101,58 @@ const defaultParticipants: Participant[] = [
 ];
 
 const Leaderboard = ({
-  participants = defaultParticipants,
+  participants,
   selectedWeek = "2024-W03",
   onWeekChange = () => {},
   onSort = () => {},
   sortColumn = "rank",
   sortDirection = "asc",
   isLoading = false,
+  showUpload = false,
+  onUploadClose = () => {},
 }: LeaderboardProps) => {
   const [loading, setLoading] = useState(isLoading);
-  const [showAdminUpload, setShowAdminUpload] = useState(false);
+  const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
+  const [realParticipants, setRealParticipants] = useState<Participant[]>([]);
+  const [hasData, setHasData] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  // Sync external showUpload prop with internal state
+  useEffect(() => {
+    setShowAdminUpload(showUpload);
+  }, [showUpload]);
+
+  // Fetch real data when component mounts
+  useEffect(() => {
+    const fetchRealData = async () => {
+      try {
+        const leaderboardData = await DataService.getRealLeaderboardData();
+        
+        if (leaderboardData.length > 0) {
+          const transformedParticipants: Participant[] = leaderboardData.map((entry, index) => ({
+            id: entry.participant_id,
+            name: entry.participant?.name || 'Unknown',
+            rank: entry.rank || index + 1,
+            steps: entry.steps,
+            distance: parseFloat(entry.distance_km || '0'),
+            points: entry.points,
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.participant?.name || 'user'}`,
+          }));
+          
+          setRealParticipants(transformedParticipants);
+          setHasData(true);
+        } else {
+          setHasData(false);
+        }
+      } catch (error) {
+        console.error('Error fetching real leaderboard data:', error);
+        setHasData(false);
+      }
+    };
+
+    fetchRealData();
+  }, []);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -119,8 +164,314 @@ const Leaderboard = ({
     }
   }, [isLoading]);
 
+  // Use provided participants, real data, or show empty state
+  const displayParticipants = participants || (hasData ? realParticipants : []);
+
   const handleSort = (column: string) => {
     onSort(column);
+  };
+
+  // File upload handlers
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/csv') {
+      setSelectedFile(file);
+    } else {
+      alert('Please select a valid CSV file.');
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file && file.type === 'text/csv') {
+      setSelectedFile(file);
+    } else {
+      alert('Please drop a valid CSV file.');
+    }
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+  };
+
+  // Function to save participants to database with proper week handling
+  const saveParticipantsToDatabase = async (participants: any[]) => {
+    const { supabase } = await import('../../../supabase/supabase');
+    
+    try {
+      // Helper function to get Monday-Sunday week boundaries
+      const getMondayWeekBounds = (date: Date) => {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        const monday = new Date(d.setDate(diff));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        return { monday, sunday };
+      };
+      
+      // Helper function to get week number (ISO week)
+      const getWeekNumber = (date: Date) => {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+      };
+      
+      // For now, assume current week - in future, parse dates from CSV if available
+      const currentDate = new Date();
+      const { monday: weekStart, sunday: weekEnd } = getMondayWeekBounds(currentDate);
+      const weekNumber = getWeekNumber(currentDate);
+      const year = currentDate.getFullYear();
+      
+      console.log('Processing week:', { weekStart, weekEnd, weekNumber, year });
+      
+      // Check if weekly challenge already exists
+      let { data: existingChallenge } = await supabase
+        .from('weekly_challenges')
+        .select('*')
+        .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
+        .eq('week_number', weekNumber)
+        .eq('year', year)
+        .single();
+      
+      let challenge = existingChallenge;
+      
+      // Create weekly challenge if it doesn't exist
+      if (!existingChallenge) {
+        const { data: newChallenge, error: challengeError } = await supabase
+          .from('weekly_challenges')
+          .insert({
+            group_id: '550e8400-e29b-41d4-a716-446655440000',
+            week_start_date: weekStart.toISOString().split('T')[0],
+            week_end_date: weekEnd.toISOString().split('T')[0],
+            week_number: weekNumber,
+            year: year,
+            title: `Week ${weekNumber}, ${year}`,
+            description: 'Weekly step challenge',
+            is_active: true
+          })
+          .select()
+          .single();
+          
+        if (challengeError) {
+          console.error('Error creating challenge:', challengeError);
+          throw new Error('Failed to create weekly challenge');
+        }
+        challenge = newChallenge;
+      }
+      
+      // Sort participants by steps (highest first) for proper ranking
+      const sortedParticipants = [...participants].sort((a, b) => b.steps - a.steps);
+      const totalParticipants = sortedParticipants.length;
+      
+      // Process each participant
+      for (let i = 0; i < sortedParticipants.length; i++) {
+        const participant = sortedParticipants[i];
+        const rank = i + 1;
+        const points = totalParticipants - i; // Inverse ranking: 1st gets max points, last gets 1
+        
+        // Check if participant already exists
+        let { data: existingParticipant } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
+          .eq('name', participant.name)
+          .single();
+        
+        let participantData = existingParticipant;
+        
+        // Create participant if doesn't exist
+        if (!existingParticipant) {
+          const { data: newParticipant, error: participantError } = await supabase
+            .from('participants')
+            .insert({
+              group_id: '550e8400-e29b-41d4-a716-446655440000',
+              name: participant.name,
+              email: `${participant.name.toLowerCase().replace(/\s+/g, '.')}@uploaded.com`,
+              is_active: true
+            })
+            .select()
+            .single();
+            
+          if (participantError) {
+            console.error('Error creating participant:', participantError);
+            continue;
+          }
+          participantData = newParticipant;
+        }
+        
+        // Check if leaderboard entry already exists for this week
+        const { data: existingEntry } = await supabase
+          .from('leaderboard_entries')
+          .select('*')
+          .eq('challenge_id', challenge.id)
+          .eq('participant_id', participantData.id)
+          .single();
+        
+        if (existingEntry) {
+          // Update existing entry with fresh data
+          const { error: updateError } = await supabase
+            .from('leaderboard_entries')
+            .update({
+              steps: participant.steps,
+              distance_km: participant.distance.toString(),
+              points: points,
+              rank: rank,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingEntry.id);
+            
+          if (updateError) {
+            console.error('Error updating leaderboard entry:', updateError);
+          }
+        } else {
+          // Create new leaderboard entry
+          const { error: leaderboardError } = await supabase
+            .from('leaderboard_entries')
+            .insert({
+              challenge_id: challenge.id,
+              participant_id: participantData.id,
+              steps: participant.steps,
+              distance_km: participant.distance.toString(),
+              points: points,
+              rank: rank
+            });
+            
+          if (leaderboardError) {
+            console.error('Error creating leaderboard entry:', leaderboardError);
+          }
+        }
+      }
+      
+      console.log(`Successfully processed ${sortedParticipants.length} participants for week ${weekNumber}, ${year}`);
+      
+    } catch (error) {
+      console.error('Database save error:', error);
+      throw error;
+    }
+  };
+
+  const handleUploadProcess = async () => {
+    if (!selectedFile) {
+      alert('Please select a file first.');
+      return;
+    }
+
+    setUploadLoading(true);
+    try {
+      // Parse CSV file
+      const text = await selectedFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      console.log('Raw CSV text:', text);
+      console.log('Parsed lines:', lines);
+      
+      if (lines.length < 2) {
+        throw new Error('CSV file must have at least a header row and one data row.');
+      }
+
+      // Parse header - handle both comma and semicolon separators
+      let separator = ',';
+      if (lines[0].includes(';') && !lines[0].includes(',')) {
+        separator = ';';
+      }
+      
+      const rawHeaders = lines[0].split(separator);
+      const headers = rawHeaders.map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      
+      console.log('Raw headers:', rawHeaders);
+      console.log('Processed headers:', headers);
+      
+      // Find column indices with flexible matching
+      const findColumnIndex = (possibleNames: string[]) => {
+        for (const name of possibleNames) {
+          // First try exact match
+          let index = headers.findIndex(h => h === name);
+          if (index !== -1) return index;
+          
+          // Then try contains match, but avoid partial matches
+          index = headers.findIndex(h => {
+            const words = h.split(' ');
+            return words.some(word => word === name) || h.includes(name);
+          });
+          if (index !== -1) return index;
+        }
+        return -1;
+      };
+      
+      const nameIndex = findColumnIndex(['name']);
+      const stepsIndex = findColumnIndex(['total steps', 'steps', 'step count', 'step total']);
+      const distanceIndex = findColumnIndex(['total distance', 'distance', 'dist']);
+      
+      console.log('Column indices:', { nameIndex, stepsIndex, distanceIndex });
+      
+      // Validate required columns
+      if (nameIndex === -1) {
+        throw new Error(`Name column not found. Found columns: ${headers.join(', ')}. Expected a column containing 'name'.`);
+      }
+      
+      if (stepsIndex === -1) {
+        throw new Error(`Steps column not found. Found columns: ${headers.join(', ')}. Expected a column containing 'steps', 'total steps', or 'step count'.`);
+      }
+
+      // Parse data rows
+      const participants = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(separator).map(v => v.trim().replace(/"/g, ''));
+        console.log(`Row ${i}:`, values);
+        if (values.length > Math.max(nameIndex, stepsIndex)) {
+          const name = values[nameIndex];
+          const steps = parseInt(values[stepsIndex]);
+          const distance = distanceIndex >= 0 ? parseFloat(values[distanceIndex]) || 0 : steps * 0.0008; // Estimate distance
+          
+          if (name && !isNaN(steps)) {
+            participants.push({
+              name,
+              steps,
+              distance,
+              points: Math.floor(steps / 100), // 1 point per 100 steps
+            });
+          }
+        }
+      }
+
+      if (participants.length === 0) {
+        throw new Error('No valid participant data found in CSV file.');
+      }
+
+      // Save to database
+      console.log('Parsed participants:', participants);
+      
+      // For now, we'll create a simple weekly challenge and save participants
+      // In a real app, you'd want to handle groups, weekly challenges, etc. more robustly
+      
+      // Create participants and leaderboard entries
+      // Note: This is a simplified implementation
+      await saveParticipantsToDatabase(participants);
+      
+      alert(`Successfully uploaded ${participants.length} participants to the leaderboard!`);
+      
+      // Reset upload state and refresh data
+      setSelectedFile(null);
+      setShowAdminUpload(false);
+      onUploadClose();
+      
+      // Refresh the component data
+      window.location.reload(); // Simple refresh - in production you'd want to refetch data
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploadLoading(false);
+    }
   };
 
   const getRankIcon = (rank: number) => {
@@ -202,24 +553,68 @@ const Leaderboard = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="border-2 border-dashed border-step-orange/30 rounded-lg p-8 text-center hover:border-step-orange/50 transition-colors cursor-pointer">
+              <div 
+                className="border-2 border-dashed border-step-orange/30 rounded-lg p-8 text-center hover:border-step-orange/50 transition-colors cursor-pointer relative"
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+                onClick={() => document.getElementById('csv-file-input')?.click()}
+              >
+                <input
+                  id="csv-file-input"
+                  type="file"
+                  accept=".csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
                 <Upload className="h-12 w-12 text-step-orange/60 mx-auto mb-4" />
                 <p className="text-lg font-medium text-gray-700 mb-2">
-                  Drop CSV file here or click to browse
+                  {selectedFile ? selectedFile.name : 'Drop CSV file here or click to browse'}
                 </p>
                 <p className="text-sm text-gray-500">
-                  Supported format: CSV with columns for Name, Steps, Distance
+                  Supported format: CSV with columns for Name, Steps, Distance (optional)
                 </p>
+                {selectedFile && (
+                  <div className="mt-4 p-3 bg-step-green/10 rounded-lg">
+                    <p className="text-sm text-step-green mb-2">
+                      ✓ File selected: {selectedFile.name}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearFile();
+                      }}
+                      className="text-xs"
+                    >
+                      Clear File
+                    </Button>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end gap-2">
                 <Button
                   variant="outline"
-                  onClick={() => setShowAdminUpload(false)}
+                  onClick={() => {
+                    setShowAdminUpload(false);
+                    onUploadClose();
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button className="bg-step-green hover:bg-step-green/90 text-white">
-                  Process Upload
+                <Button 
+                  className="bg-step-green hover:bg-step-green/90 text-white"
+                  onClick={handleUploadProcess}
+                  disabled={!selectedFile || uploadLoading}
+                >
+                  {uploadLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </>
+                  ) : (
+                    'Process Upload'
+                  )}
                 </Button>
               </div>
             </div>
@@ -289,45 +684,68 @@ const Leaderboard = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {participants.map((participant) => (
-              <TableRow key={participant.id} className="hover:bg-step-green/5">
-                <TableCell className="font-medium">
-                  <div className="flex items-center justify-center">
-                    {getRankIcon(participant.rank)}
+            {displayParticipants.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12">
+                  <div className="flex flex-col items-center justify-center">
+                    <Trophy className="h-16 w-16 text-gray-300 mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                      No Participants Yet
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Upload step data to see the leaderboard
+                    </p>
+                    <Button
+                      onClick={() => setShowAdminUpload(true)}
+                      className="bg-step-green hover:bg-step-green/90 text-white"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload CSV Data
+                    </Button>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={participant.avatar}
-                        alt={participant.name}
-                      />
-                      <AvatarFallback className="bg-step-green/20 text-step-teal font-medium">
-                        {participant.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-gray-900">
-                      {participant.name}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {participant.steps.toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {participant.distance.toFixed(1)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-step-green/20 text-step-teal">
-                    {participant.points}
-                  </span>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              displayParticipants.map((participant) => (
+                <TableRow key={participant.id} className="hover:bg-step-green/5">
+                  <TableCell className="font-medium">
+                    <div className="flex items-center justify-center">
+                      {getRankIcon(participant.rank)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={participant.avatar}
+                          alt={participant.name}
+                        />
+                        <AvatarFallback className="bg-step-green/20 text-step-teal font-medium">
+                          {participant.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium text-gray-900">
+                        {participant.name}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {participant.steps.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {participant.distance.toFixed(1)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-step-green/20 text-step-teal">
+                      {participant.points}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </Card>
