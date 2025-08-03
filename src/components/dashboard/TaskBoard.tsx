@@ -29,6 +29,7 @@ import {
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { motion } from "framer-motion";
 import { DataService } from "@/lib/dataService";
+import { supabase } from "../../../supabase/supabase";
 
 interface Participant {
   id: string;
@@ -50,6 +51,7 @@ interface LeaderboardProps {
   isLoading?: boolean;
   showUpload?: boolean;
   onUploadClose?: () => void;
+  onDataRefresh?: () => Promise<void>;
 }
 
 const defaultParticipants: Participant[] = [
@@ -110,6 +112,7 @@ const Leaderboard = ({
   isLoading = false,
   showUpload = false,
   onUploadClose = () => {},
+  onDataRefresh,
 }: LeaderboardProps) => {
   const [loading, setLoading] = useState(isLoading);
   const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
@@ -117,11 +120,48 @@ const Leaderboard = ({
   const [hasData, setHasData] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [availableWeeks, setAvailableWeeks] = useState<Array<{id: string, weekNumber: number, year: number, startDate: string, endDate: string}>>([]);
+  const [currentWeek, setCurrentWeek] = useState<string>('');
 
   // Sync external showUpload prop with internal state
   useEffect(() => {
     setShowAdminUpload(showUpload);
   }, [showUpload]);
+
+  // Fetch available weeks
+  const fetchAvailableWeeks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('weekly_challenges')
+        .select('id, week_number, year, week_start_date, week_end_date')
+        .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
+        .order('year', { ascending: false })
+        .order('week_number', { ascending: false });
+        
+      if (error) {
+        console.error('Error fetching weeks:', error);
+        return;
+      }
+      
+      const weeks = data?.map(week => ({
+        id: week.id,
+        weekNumber: week.week_number,
+        year: week.year,
+        startDate: week.week_start_date,
+        endDate: week.week_end_date
+      })) || [];
+      
+      setAvailableWeeks(weeks);
+      
+      // Set current week as default (most recent)
+      if (weeks.length > 0) {
+        const weekKey = `${weeks[0].year}-W${weeks[0].weekNumber.toString().padStart(2, '0')}`;
+        setCurrentWeek(weekKey);
+      }
+    } catch (error) {
+      console.error('Error fetching available weeks:', error);
+    }
+  };
 
   // Fetch real data when component mounts
   useEffect(() => {
@@ -152,6 +192,7 @@ const Leaderboard = ({
     };
 
     fetchRealData();
+    fetchAvailableWeeks();
   }, []);
 
   // Simulate loading for demo purposes
@@ -461,10 +502,13 @@ const Leaderboard = ({
       // Reset upload state and refresh data
       setSelectedFile(null);
       setShowAdminUpload(false);
-      onUploadClose();
       
       // Refresh the component data
-      window.location.reload(); // Simple refresh - in production you'd want to refetch data
+      if (onDataRefresh) {
+        await onDataRefresh();
+      } else {
+        onUploadClose();
+      }
       
     } catch (error) {
       console.error('Upload error:', error);
@@ -522,15 +566,22 @@ const Leaderboard = ({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={selectedWeek} onValueChange={onWeekChange}>
-            <SelectTrigger className="w-40">
+          <Select value={currentWeek} onValueChange={(value) => setCurrentWeek(value)}>
+            <SelectTrigger className="w-64">
               <Calendar className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Select week" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2024-W03">Week 3, 2024</SelectItem>
-              <SelectItem value="2024-W02">Week 2, 2024</SelectItem>
-              <SelectItem value="2024-W01">Week 1, 2024</SelectItem>
+              {availableWeeks.map((week) => {
+                const weekKey = `${week.year}-W${week.weekNumber.toString().padStart(2, '0')}`;
+                const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                return (
+                  <SelectItem key={weekKey} value={weekKey}>
+                    Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <Button

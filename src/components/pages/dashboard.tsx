@@ -52,6 +52,20 @@ const Home = () => {
     setActiveView("leaderboard"); // Switch to leaderboard view to show the upload interface
   };
 
+  // Refresh data after upload
+  const handleDataRefresh = async () => {
+    try {
+      setHasRealData(null); // Set to loading state
+      const leaderboardData = await DataService.getRealLeaderboardData();
+      const hasData = leaderboardData.length > 0;
+      setHasRealData(hasData);
+      setShowUpload(false); // Close upload modal
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      setHasRealData(false);
+    }
+  };
+
   const sidebarItems = [
     {
       icon: <Trophy size={20} />,
@@ -186,6 +200,7 @@ const Home = () => {
                   isLoading={loading} 
                   showUpload={showUpload}
                   onUploadClose={() => setShowUpload(false)}
+                  onDataRefresh={handleDataRefresh}
                 />
               </>
             )}
