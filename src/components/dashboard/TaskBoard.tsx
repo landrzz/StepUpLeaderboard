@@ -609,7 +609,7 @@ const Leaderboard = ({
                   const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   return (
-                    <SelectItem key={weekKey} value={weekKey}>
+                    <SelectItem key={weekKey} value={weekKey} className="text-sm">
                       Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
                     </SelectItem>
                   );

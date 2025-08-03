@@ -57,7 +57,7 @@ const defaultStatsCards: StatsCardProps[] = [
   {
     title: "Average Steps",
     value: "8,924",
-    subtitle: "Per participant this week",
+    subtitle: "Across all participants this week",
     icon: <Medal className="h-5 w-5" />,
     color: "step-green",
   },
@@ -186,7 +186,7 @@ const DashboardGrid = ({
             {
               title: "Average Steps",
               value: avgSteps.toLocaleString(),
-              subtitle: "Per participant this week",
+              subtitle: "Across all participants this week",
               icon: <Medal className="h-5 w-5" />,
               color: "step-green",
             },
