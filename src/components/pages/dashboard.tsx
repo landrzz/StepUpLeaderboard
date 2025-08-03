@@ -78,11 +78,6 @@ const Home = () => {
       isActive: activeView === "statistics",
     },
     {
-      icon: <Calendar size={20} />,
-      label: "Weekly History",
-      isActive: activeView === "history",
-    },
-    {
       icon: <Users size={20} />,
       label: "Participants",
       isActive: activeView === "participants",
@@ -116,7 +111,7 @@ const Home = () => {
                 </h2>
               </div>
               <p className="text-sm text-gray-500">
-                Track your weekly fitness progress
+                Track your weekly step rankings!
               </p>
             </div>
             <div className="flex-1 px-4">
@@ -235,17 +230,6 @@ const Home = () => {
                   <RefreshCw className="h-8 w-8 animate-spin text-step-teal mx-auto mb-4" />
                   <p className="text-gray-600">Checking for data...</p>
                 </div>
-              </div>
-            )}
-            {activeView === "weeklyhistory" && (
-              <div className="text-center py-12">
-                <Calendar className="h-16 w-16 text-step-teal mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-step-teal mb-2">
-                  Weekly History
-                </h3>
-                <p className="text-gray-600">
-                  Historical data and progress tracking coming soon
-                </p>
               </div>
             )}
             {activeView === "participants" && (

@@ -117,11 +117,13 @@ const Leaderboard = ({
   const [loading, setLoading] = useState(isLoading);
   const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
   const [realParticipants, setRealParticipants] = useState<Participant[]>([]);
+  const [overallParticipants, setOverallParticipants] = useState<Participant[]>([]);
   const [hasData, setHasData] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [availableWeeks, setAvailableWeeks] = useState<Array<{id: string, weekNumber: number, year: number, startDate: string, endDate: string}>>([]);
   const [currentWeek, setCurrentWeek] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
 
   // Sync external showUpload prop with internal state
   useEffect(() => {
@@ -163,6 +165,29 @@ const Leaderboard = ({
     }
   };
 
+  // Fetch overall leaderboard data
+  const fetchOverallData = async () => {
+    try {
+      const overallData = await DataService.getOverallLeaderboard();
+      
+      if (overallData.length > 0) {
+        const transformedOverallParticipants: Participant[] = overallData.map((entry) => ({
+          id: entry.participant_id,
+          name: entry.name,
+          rank: entry.rank,
+          steps: entry.totalSteps,
+          distance: entry.totalDistance,
+          points: entry.totalPoints,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.name}`,
+        }));
+        
+        setOverallParticipants(transformedOverallParticipants);
+      }
+    } catch (error) {
+      console.error('Error fetching overall leaderboard data:', error);
+    }
+  };
+
   // Fetch real data when component mounts
   useEffect(() => {
     const fetchRealData = async () => {
@@ -192,6 +217,7 @@ const Leaderboard = ({
     };
 
     fetchRealData();
+    fetchOverallData();
     fetchAvailableWeeks();
   }, []);
 
@@ -205,8 +231,9 @@ const Leaderboard = ({
     }
   }, [isLoading]);
 
-  // Use provided participants, real data, or show empty state
-  const displayParticipants = participants || (hasData ? realParticipants : []);
+  // Use provided participants, real data based on view mode, or show empty state
+  const displayParticipants = participants || (hasData ? 
+    (viewMode === 'weekly' ? realParticipants : overallParticipants) : []);
 
   const handleSort = (column: string) => {
     onSort(column);
@@ -510,6 +537,9 @@ const Leaderboard = ({
         onUploadClose();
       }
       
+      // Also refresh overall data
+      await fetchOverallData();
+      
     } catch (error) {
       console.error('Upload error:', error);
       alert(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -562,28 +592,61 @@ const Leaderboard = ({
             Step Challenge Leaderboard
           </h2>
           <p className="text-gray-600">
-            Weekly rankings and participant standings
+            {viewMode === 'weekly' ? 'Weekly rankings and participant standings' : 'Overall cumulative points and steps across all weeks'}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Select value={currentWeek} onValueChange={(value) => setCurrentWeek(value)}>
-            <SelectTrigger className="w-64">
+          {/* Week Selector - only show in weekly mode */}
+          {viewMode === 'weekly' && (
+            <Select value={currentWeek} onValueChange={(value) => setCurrentWeek(value)}>
+              <SelectTrigger className="w-64">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Select week" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableWeeks.map((week) => {
+                  const weekKey = `${week.year}-W${week.weekNumber.toString().padStart(2, '0')}`;
+                  const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  return (
+                    <SelectItem key={weekKey} value={weekKey}>
+                      Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          )}
+          
+          {/* View Mode Toggle */}
+          <div className="flex bg-gray-100 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'weekly' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('weekly')}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                viewMode === 'weekly' 
+                  ? 'bg-step-green text-white hover:bg-step-green/90' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+            >
               <Calendar className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Select week" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableWeeks.map((week) => {
-                const weekKey = `${week.year}-W${week.weekNumber.toString().padStart(2, '0')}`;
-                const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                return (
-                  <SelectItem key={weekKey} value={weekKey}>
-                    Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+              Weekly
+            </Button>
+            <Button
+              variant={viewMode === 'overall' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('overall')}
+              className={`px-4 py-2 rounded-md transition-colors ${
+                viewMode === 'overall' 
+                  ? 'bg-step-green text-white hover:bg-step-green/90' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+              }`}
+            >
+              <Trophy className="h-4 w-4 mr-2" />
+              Overall
+            </Button>
+          </div>
           <Button
             onClick={() => setShowAdminUpload(!showAdminUpload)}
             className="bg-step-orange hover:bg-step-orange/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors"
@@ -621,9 +684,18 @@ const Leaderboard = ({
                 <p className="text-lg font-medium text-gray-700 mb-2">
                   {selectedFile ? selectedFile.name : 'Drop CSV file here or click to browse'}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 mb-3">
                   Supported format: CSV with columns for Name, Steps, Distance (optional)
                 </p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left">
+                  <p className="text-xs font-medium text-amber-800 mb-1">📅 Important Upload Requirements:</p>
+                  <ul className="text-xs text-amber-700 space-y-1">
+                    <li>• Upload CSV files for previous week (Monday-Sunday) every Monday</li>
+                    <li>• Do NOT include overlapping dates in your CSV files</li>
+                    <li>• Each CSV should contain data for exactly one week period</li>
+                    <li>• Fresh uploads will update existing data for the same week</li>
+                  </ul>
+                </div>
                 {selectedFile && (
                   <div className="mt-4 p-3 bg-step-green/10 rounded-lg">
                     <p className="text-sm text-step-green mb-2">
@@ -706,7 +778,7 @@ const Leaderboard = ({
                   onClick={() => handleSort("steps")}
                   className="p-0 h-auto font-medium"
                 >
-                  Steps
+                  {viewMode === 'weekly' ? 'Steps' : 'Total Steps'}
                   <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
@@ -717,7 +789,7 @@ const Leaderboard = ({
                   onClick={() => handleSort("distance")}
                   className="p-0 h-auto font-medium"
                 >
-                  Distance (km)
+                  {viewMode === 'weekly' ? 'Distance (km)' : 'Total Distance (km)'}
                   <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
@@ -728,7 +800,7 @@ const Leaderboard = ({
                   onClick={() => handleSort("points")}
                   className="p-0 h-auto font-medium"
                 >
-                  Points
+                  {viewMode === 'weekly' ? 'Points' : 'Total Points'}
                   <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>

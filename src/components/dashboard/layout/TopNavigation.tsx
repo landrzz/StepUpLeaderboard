@@ -9,27 +9,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Bell, Home, Search, Settings, User } from "lucide-react";
+import { Home, Search, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../supabase/auth";
 
 interface TopNavigationProps {
   onSearch?: (query: string) => void;
-  notifications?: Array<{ id: string; title: string }>;
 }
 
 const TopNavigation = ({
   onSearch = () => { },
-  notifications = [
-    { id: "1", title: "New project assigned" },
-    { id: "2", title: "Meeting reminder" },
-  ],
 }: TopNavigationProps) => {
   const { user, signOut } = useAuth();
 
@@ -52,36 +41,6 @@ const TopNavigation = ({
       </div>
 
       <div className="flex items-center gap-4">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative rounded-full h-9 w-9 bg-gray-100 hover:bg-gray-200 transition-colors">
-                    <Bell className="h-4 w-4 text-gray-700" />
-                    {notifications.length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center font-medium border border-white">
-                        {notifications.length}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl overflow-hidden p-2 border border-gray-200 shadow-lg">
-                  <DropdownMenuLabel className="text-sm font-medium text-gray-900 px-2">Notifications</DropdownMenuLabel>
-                  <DropdownMenuSeparator className="my-1 bg-gray-100" />
-                  {notifications.map((notification) => (
-                    <DropdownMenuItem key={notification.id} className="rounded-lg text-sm py-2 focus:bg-gray-100">
-                      {notification.title}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TooltipTrigger>
-            <TooltipContent className="rounded-lg bg-gray-900 text-white text-xs px-3 py-1.5">
-              <p>Notifications</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-8 w-8 hover:cursor-pointer">
@@ -100,10 +59,6 @@ const TopNavigation = ({
             <DropdownMenuItem className="cursor-pointer">
               <User className="mr-2 h-4 w-4" />
               Profile
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer" onSelect={() => signOut()}>
