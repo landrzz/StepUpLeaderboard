@@ -53,6 +53,7 @@ interface LeaderboardProps {
   showUpload?: boolean;
   onUploadClose?: () => void;
   onDataRefresh?: () => Promise<void>;
+  groupId?: string;
 }
 
 const defaultParticipants: Participant[] = [
@@ -114,6 +115,7 @@ const Leaderboard = ({
   showUpload = false,
   onUploadClose = () => {},
   onDataRefresh,
+  groupId,
 }: LeaderboardProps) => {
   const [loading, setLoading] = useState(isLoading);
   const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
@@ -172,7 +174,7 @@ const Leaderboard = ({
   // Fetch overall leaderboard data
   const fetchOverallData = async () => {
     try {
-      const overallData = await DataService.getOverallLeaderboard();
+      const overallData = await DataService.getOverallLeaderboard(groupId);
       
       if (overallData.length > 0) {
         const transformedOverallParticipants: Participant[] = overallData.map((entry) => ({
@@ -196,7 +198,7 @@ const Leaderboard = ({
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        const leaderboardData = await DataService.getRealLeaderboardData();
+        const leaderboardData = await DataService.getRealLeaderboardData(groupId);
         
         if (leaderboardData.length > 0) {
           const transformedParticipants: Participant[] = leaderboardData.map((entry, index) => ({
@@ -223,7 +225,7 @@ const Leaderboard = ({
     fetchRealData();
     fetchOverallData();
     fetchAvailableWeeks();
-  }, []);
+  }, [groupId]);
 
   // Simulate loading for demo purposes
   useEffect(() => {

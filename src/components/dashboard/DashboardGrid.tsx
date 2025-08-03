@@ -16,6 +16,7 @@ interface StatsCardProps {
 interface DashboardGridProps {
   statsCards?: StatsCardProps[];
   isLoading?: boolean;
+  groupId?: string;
 }
 
 const defaultStatsCards: StatsCardProps[] = [
@@ -125,6 +126,7 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
 const DashboardGrid = ({
   statsCards,
   isLoading = false,
+  groupId,
 }: DashboardGridProps) => {
   const [loading, setLoading] = useState(isLoading);
   const [realStatsCards, setRealStatsCards] = useState<StatsCardProps[]>([]);
@@ -134,7 +136,7 @@ const DashboardGrid = ({
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        const leaderboardData = await DataService.getRealLeaderboardData();
+        const leaderboardData = await DataService.getRealLeaderboardData(groupId);
         const participantStats = await DataService.getRealParticipantStats();
         
         if (leaderboardData.length > 0) {
@@ -204,7 +206,7 @@ const DashboardGrid = ({
     };
 
     fetchRealData();
-  }, []);
+  }, [groupId]);
 
   // Simulate loading for demo purposes
   useEffect(() => {

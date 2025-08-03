@@ -58,24 +58,6 @@ export class GroupService {
     return data || [];
   }
 
-  static async getGroupById(groupId: string): Promise<Group | null> {
-    const { data, error } = await supabase
-      .from('groups')
-      .select('*')
-      .eq('id', groupId)
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Group not found
-      }
-      throw new Error(`Failed to fetch group: ${error.message}`);
-    }
-
-    return data;
-  }
-
   static async joinGroup(groupId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -120,6 +102,25 @@ export class GroupService {
     if (error) {
       throw new Error(`Failed to add user to group: ${error.message}`);
     }
+  }
+
+  static async getGroupById(groupId: string): Promise<Group | null> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .eq('id', groupId)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return null;
+      }
+      throw new Error(`Failed to fetch group: ${error.message}`);
+    }
+
+    return data;
   }
 
   static async getGroupParticipants(groupId: string) {

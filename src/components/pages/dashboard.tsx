@@ -4,28 +4,70 @@ import Sidebar from "../dashboard/layout/Sidebar";
 import DashboardGrid from "../dashboard/DashboardGrid";
 import Leaderboard from "../dashboard/TaskBoard";
 import EmptyState from "../dashboard/EmptyState";
+import Statistics from "../dashboard/Statistics";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Trophy, BarChart3, Calendar, Users, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
 import GroupManager from "../groups/GroupManager";
 import { DataService } from "@/lib/dataService";
+import { GroupService } from "@/lib/groupService";
 
 const Home = () => {
   const [loading, setLoading] = useState(false);
   const [activeView, setActiveView] = useState("leaderboard");
   const [hasRealData, setHasRealData] = useState<boolean | null>(null); // null = loading, boolean = result
   const [showUpload, setShowUpload] = useState(false);
+  const [groupName, setGroupName] = useState<string | null>(null);
   const { groupId } = useParams();
   const { user } = useAuth();
-  const isPublicView = !!groupId;
+  const navigate = useNavigate();
+  const isPublicView = !!groupId && !user;
+
+  // Redirect to user's first group if no groupId is provided and user is authenticated
+  useEffect(() => {
+    const redirectToDefaultGroup = async () => {
+      if (!groupId && user && !isPublicView) {
+        try {
+          const userGroups = await GroupService.getUserGroups(user.id);
+          if (userGroups.length > 0) {
+            // Redirect to the first group
+            navigate(`/dashboard/${userGroups[0].id}`, { replace: true });
+          }
+        } catch (error) {
+          console.error('Error fetching user groups for redirect:', error);
+        }
+      }
+    };
+
+    redirectToDefaultGroup();
+  }, [groupId, user, navigate, isPublicView]);
+
+  // Fetch group name when groupId changes
+  useEffect(() => {
+    const fetchGroupName = async () => {
+      if (groupId) {
+        try {
+          const group = await GroupService.getGroupById(groupId);
+          setGroupName(group?.name || null);
+        } catch (error) {
+          console.error('Error fetching group name:', error);
+          setGroupName(null);
+        }
+      } else {
+        setGroupName(null);
+      }
+    };
+
+    fetchGroupName();
+  }, [groupId]);
 
   // Check for real leaderboard data when component mounts
   useEffect(() => {
     const checkForRealData = async () => {
       try {
-        const leaderboardData = await DataService.getRealLeaderboardData();
+        const leaderboardData = await DataService.getRealLeaderboardData(groupId);
         const hasData = leaderboardData.length > 0;
         setHasRealData(hasData);
       } catch (error) {
@@ -35,7 +77,7 @@ const Home = () => {
     };
 
     checkForRealData();
-  }, []);
+  }, [groupId]);
 
   // Function to trigger loading state for demonstration
   const handleRefresh = () => {
@@ -56,7 +98,7 @@ const Home = () => {
   const handleDataRefresh = async () => {
     try {
       setHasRealData(null); // Set to loading state
-      const leaderboardData = await DataService.getRealLeaderboardData();
+      const leaderboardData = await DataService.getRealLeaderboardData(groupId);
       const hasData = leaderboardData.length > 0;
       setHasRealData(hasData);
       setShowUpload(false); // Close upload modal
@@ -113,6 +155,12 @@ const Home = () => {
               <p className="text-sm text-gray-500">
                 Track your weekly step rankings!
               </p>
+              {groupName && (
+                <div className="mt-3 p-2 bg-step-green/5 rounded-lg border border-step-green/20">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Current Group</p>
+                  <p className="text-sm font-medium text-step-teal">{groupName}</p>
+                </div>
+              )}
             </div>
             <div className="flex-1 px-4">
               <div className="space-y-1.5">
@@ -151,7 +199,9 @@ const Home = () => {
                     <h1 className="text-2xl font-bold text-step-teal">
                       Step Challenge Leaderboard
                     </h1>
-                    <p className="text-sm text-gray-600">Group ID: {groupId}</p>
+                    <p className="text-sm text-gray-600">
+                      {groupName ? `Group: ${groupName}` : `Group ID: ${groupId}`}
+                    </p>
                   </div>
                 </div>
                 <Button
@@ -190,12 +240,13 @@ const Home = () => {
             )}
             {activeView === "leaderboard" && (hasRealData === true || showUpload) && (
               <>
-                {hasRealData === true && <DashboardGrid isLoading={loading} />}
+                {hasRealData === true && <DashboardGrid isLoading={loading} groupId={groupId} />}
                 <Leaderboard 
                   isLoading={loading} 
                   showUpload={showUpload}
                   onUploadClose={() => setShowUpload(false)}
                   onDataRefresh={handleDataRefresh}
+                  groupId={groupId}
                 />
               </>
             )}
@@ -207,30 +258,8 @@ const Home = () => {
                 </div>
               </div>
             )}
-            {(activeView === "statistics" && hasRealData === true) && (
-              <DashboardGrid isLoading={loading} />
-            )}
-            {activeView === "statistics" && hasRealData === false && (
-              <EmptyState onUploadClick={handleUploadClick} />
-            )}
-            {activeView === "statistics" && hasRealData === true && (
-              <div className="text-center py-12">
-                <BarChart3 className="h-16 w-16 text-step-teal mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-step-teal mb-2">
-                  Detailed Statistics
-                </h3>
-                <p className="text-gray-600">
-                  Advanced analytics and performance insights coming soon
-                </p>
-              </div>
-            )}
-            {activeView === "statistics" && hasRealData === null && (
-              <div className="flex justify-center items-center min-h-[60vh]">
-                <div className="text-center">
-                  <RefreshCw className="h-8 w-8 animate-spin text-step-teal mx-auto mb-4" />
-                  <p className="text-gray-600">Checking for data...</p>
-                </div>
-              </div>
+            {activeView === "statistics" && (
+              <Statistics isLoading={loading} groupId={groupId} />
             )}
             {activeView === "participants" && (
               <div className="text-center py-12">

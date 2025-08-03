@@ -46,8 +46,8 @@ export default function GroupManager() {
 
   const handleGroupCreated = (newGroup: Group) => {
     setUserGroups(prev => [newGroup, ...prev]);
-    // Navigate to the new group
-    navigate(`/group/${newGroup.id}`);
+    // Navigate to the new group dashboard
+    navigate(`/dashboard/${newGroup.id}`);
   };
 
   const handleJoinGroup = async () => {
@@ -68,8 +68,8 @@ export default function GroupManager() {
         description: 'You have successfully joined the group.',
       });
       setJoinGroupId('');
-      // Navigate to the joined group
-      navigate(`/group/${joinGroupId.trim()}`);
+      // Navigate to the joined group dashboard
+      navigate(`/dashboard/${joinGroupId.trim()}`);
     } catch (error) {
       toast({
         title: 'Error',
@@ -90,7 +90,7 @@ export default function GroupManager() {
   };
 
   const navigateToGroup = (groupId: string) => {
-    navigate(`/group/${groupId}`);
+    navigate(`/dashboard/${groupId}`);
   };
 
   if (isLoading) {

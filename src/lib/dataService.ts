@@ -29,26 +29,34 @@ export class DataService {
   /**
    * Get real leaderboard data (excluding dummy data)
    */
-  static async getRealLeaderboardData() {
+  static async getRealLeaderboardData(groupId?: string) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leaderboard_entries')
         .select(`
           *,
           participant:participants!inner(
             id,
             name,
-            email
+            email,
+            group_id
           ),
           challenge:weekly_challenges(
             id,
             week_start_date,
             week_end_date,
-            title
+            title,
+            group_id
           )
         `)
-        .not('participant.email', 'like', '%@example.com')
-        .order('rank', { ascending: true });
+        .not('participant.email', 'like', '%@example.com');
+      
+      // Filter by group if groupId is provided
+      if (groupId) {
+        query = query.eq('participant.group_id', groupId);
+      }
+      
+      const { data, error } = await query.order('rank', { ascending: true });
 
       if (error) {
         console.error('Error fetching real leaderboard data:', error);
@@ -102,9 +110,9 @@ export class DataService {
   /**
    * Get overall leaderboard with cumulative points and steps across all weeks
    */
-  static async getOverallLeaderboard() {
+  static async getOverallLeaderboard(groupId?: string) {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leaderboard_entries')
         .select(`
           participant_id,
@@ -114,14 +122,23 @@ export class DataService {
           participant:participants!inner(
             id,
             name,
-            email
+            email,
+            group_id
           ),
           challenge:weekly_challenges(
             week_number,
-            year
+            year,
+            group_id
           )
         `)
         .not('participant.email', 'like', '%@example.com');
+      
+      // Filter by group if groupId is provided
+      if (groupId) {
+        query = query.eq('participant.group_id', groupId);
+      }
+      
+      const { data, error } = await query;
 
       if (error) {
         console.error('Error fetching overall leaderboard:', error);
