@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "../supabase/auth";
 import { Toaster } from "./components/ui/toaster";
 import { LoadingScreen, LoadingSpinner } from "./components/ui/loading-spinner";
 import GroupInvite from "./components/groups/GroupInvite";
+import { UnitPreferenceProvider } from "./contexts/UnitPreferenceContext";
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -52,10 +53,12 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Suspense fallback={<LoadingScreen text="Loading application..." />}>
-        <AppRoutes />
-      </Suspense>
-      <Toaster />
+      <UnitPreferenceProvider>
+        <Suspense fallback={<LoadingScreen text="Loading application..." />}>
+          <AppRoutes />
+        </Suspense>
+        <Toaster />
+      </UnitPreferenceProvider>
     </AuthProvider>
   );
 }

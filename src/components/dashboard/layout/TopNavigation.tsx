@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Home, Search, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../supabase/auth";
+import ProfileModal from "../../profile/ProfileModal";
 
 interface TopNavigationProps {
   onSearch?: (query: string) => void;
@@ -21,6 +23,7 @@ const TopNavigation = ({
   onSearch = () => { },
 }: TopNavigationProps) => {
   const { user, signOut } = useAuth();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   if (!user) return null;
 
@@ -56,7 +59,10 @@ const TopNavigation = ({
           <DropdownMenuContent align="end" className="rounded-xl border-none shadow-lg">
             <DropdownMenuLabel className="text-xs text-gray-500">{user.email}</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem 
+              className="cursor-pointer" 
+              onSelect={() => setIsProfileModalOpen(true)}
+            >
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
@@ -67,6 +73,12 @@ const TopNavigation = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      
+      {/* Profile Modal */}
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
+      />
     </div>
   );
 };

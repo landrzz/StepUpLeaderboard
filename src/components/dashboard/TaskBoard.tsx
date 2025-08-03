@@ -30,6 +30,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { motion } from "framer-motion";
 import { DataService } from "@/lib/dataService";
 import { supabase } from "../../../supabase/supabase";
+import { useUnitPreference } from "../../contexts/UnitPreferenceContext";
 
 interface Participant {
   id: string;
@@ -124,6 +125,9 @@ const Leaderboard = ({
   const [availableWeeks, setAvailableWeeks] = useState<Array<{id: string, weekNumber: number, year: number, startDate: string, endDate: string}>>([]);
   const [currentWeek, setCurrentWeek] = useState<string>('');
   const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
+  
+  // Unit preference hook
+  const { convertDistance, getDistanceAbbreviation } = useUnitPreference();
 
   // Sync external showUpload prop with internal state
   useEffect(() => {
@@ -789,7 +793,7 @@ const Leaderboard = ({
                   onClick={() => handleSort("distance")}
                   className="p-0 h-auto font-medium"
                 >
-                  {viewMode === 'weekly' ? 'Distance (km)' : 'Total Distance (km)'}
+                  {viewMode === 'weekly' ? `Distance (${getDistanceAbbreviation()})` : `Total Distance (${getDistanceAbbreviation()})`}
                   <ArrowUpDown className="ml-1 h-3 w-3" />
                 </Button>
               </TableHead>
@@ -858,8 +862,8 @@ const Leaderboard = ({
                   <TableCell className="text-right font-medium">
                     {participant.steps.toLocaleString()}
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {participant.distance.toFixed(1)}
+                  <TableCell className="text-right">
+                    {convertDistance(participant.distance).toFixed(1)}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-step-green/20 text-step-teal">
