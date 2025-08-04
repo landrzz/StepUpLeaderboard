@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trophy, Target, TrendingUp, Users, Medal, Crown } from "lucide-react";
+import { Trophy, Target, TrendingUp, Users, Medal, Crown, Zap } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DataService } from "@/lib/dataService";
 import { useUnitPreference } from "@/contexts/UnitPreferenceContext";
@@ -150,55 +150,82 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = f
         if (leaderboardData.length > 0) {
           // Calculate real statistics from the data
           const topPerformer = leaderboardData[0];
-          const totalSteps = leaderboardData.reduce((sum, entry) => sum + entry.steps, 0);
-          const totalDistance = leaderboardData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
-          const avgSteps = Math.round(totalSteps / leaderboardData.length);
+          
+          // Handle different data structures based on view mode
+          let totalSteps, totalDistance, avgSteps;
+          
+          if (viewMode === 'weekly') {
+            // Weekly view data structure
+            totalSteps = leaderboardData.reduce((sum, entry) => sum + entry.steps, 0);
+            totalDistance = leaderboardData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
+            avgSteps = Math.round(totalSteps / leaderboardData.length);
+          } else {
+            // Overall view data structure
+            totalSteps = leaderboardData.reduce((sum, entry) => sum + entry.totalSteps, 0);
+            totalDistance = leaderboardData.reduce((sum, entry) => sum + entry.totalDistance, 0);
+            avgSteps = Math.round(totalSteps / leaderboardData.length);
+          }
           
           // Find most improved (for now, just use second place or a placeholder)
           const mostImproved = leaderboardData[1] || leaderboardData[0];
           
+          // Create stats cards based on view mode
+          let performerName, performerSteps;
+          
+          if (viewMode === 'weekly') {
+            performerName = topPerformer.participant?.name || "N/A";
+            performerSteps = topPerformer.steps;
+          } else {
+            performerName = topPerformer.name || "N/A";
+            performerSteps = topPerformer.totalSteps;
+          }
+          
           const realStats: StatsCardProps[] = [
             {
-              title: "Top Performer",
-              value: topPerformer.participant?.name || "N/A",
-              subtitle: `${topPerformer.steps.toLocaleString()} steps this week`,
+              title: viewMode === 'weekly' ? "Top Performer" : "Overall Champion",
+              value: performerName,
+              subtitle: `${performerSteps.toLocaleString()} ${viewMode === 'weekly' ? 'steps this week' : 'total steps'}`,
               icon: <Crown className="h-5 w-5" />,
               color: "step-orange",
             },
             {
-              title: "Weekly Leader",
-              value: topPerformer.participant?.name || "N/A",
-              subtitle: `${topPerformer.steps.toLocaleString()} total steps`,
+              title: viewMode === 'weekly' ? "Weekly Leader" : "Most Points",
+              value: performerName,
+              subtitle: viewMode === 'weekly' ? 
+                `${performerSteps.toLocaleString()} total steps` : 
+                `${topPerformer.totalPoints} total points`,
               icon: <Trophy className="h-5 w-5" />,
               color: "step-green",
             },
             {
-              title: "Most Improved",
-              value: mostImproved.participant?.name || "N/A",
-              subtitle: "Great progress this week!",
-              icon: <TrendingUp className="h-5 w-5" />,
+              title: viewMode === 'weekly' ? "Most Improved" : "Most Consistent",
+              value: viewMode === 'weekly' ? 
+                (mostImproved.participant?.name || "N/A") : 
+                (leaderboardData.find(p => p.weekCount === Math.max(...leaderboardData.map(p => p.weekCount)))?.name || "N/A"),
+              subtitle: viewMode === 'weekly' ? "Keep going!" : "Most weeks participated",
+              icon: <Zap className="h-5 w-5" />,
+              color: "step-blue",
+            },
+            {
+              title: viewMode === 'weekly' ? "Active Participants" : "Total Participants",
+              value: `${leaderboardData.length}`,
+              subtitle: viewMode === 'weekly' ? "participants this week" : "unique participants overall",
+              icon: <Users className="h-5 w-5" />,
               color: "step-teal",
             },
             {
-              title: "Active Participants",
-              value: leaderboardData.length.toString(),
-              subtitle: "Joined this week's challenge",
-              icon: <Users className="h-5 w-5" />,
-              color: "step-yellow",
-            },
-            {
               title: "Total Distance",
-              value: `${convertDistance(totalDistance).toFixed(1)} ${getDistanceAbbreviation()}`,
-              subtitle: "Covered by all participants",
+              value: `${convertDistance(totalDistance).toFixed(1)}`,
+              subtitle: `${getDistanceAbbreviation()} ${viewMode === 'weekly' ? 'this week' : 'overall'}`,
               icon: <Target className="h-5 w-5" />,
-              color: "step-red",
+              color: "step-purple",
             },
             {
               title: "Average Steps",
-              value: avgSteps.toLocaleString(),
-              subtitle: "Across all participants this week",
+              value: `${avgSteps.toLocaleString()}`,
+              subtitle: viewMode === 'weekly' ? "steps per person this week" : "steps per person overall",
               icon: <Medal className="h-5 w-5" />,
-              color: "step-green",
+              color: "step-pink",
             },
           ];
           
