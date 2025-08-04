@@ -159,6 +159,16 @@ export default function GroupInvite() {
                     Sign Up
                   </Button>
                 </div>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">or</p>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate(`/dashboard/${groupId}`)}
+                    className="text-step-teal hover:text-step-teal/80"
+                  >
+                    View as Guest
+                  </Button>
+                </div>
               </div>
             ) : isUserInGroup ? (
               <div className="space-y-4">

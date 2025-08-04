@@ -20,6 +20,7 @@ const Home = () => {
   const [hasRealData, setHasRealData] = useState<boolean | null>(null); // null = loading, boolean = result
   const [showUpload, setShowUpload] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
+  const [isGroupAdmin, setIsGroupAdmin] = useState<boolean>(false);
   const { groupId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,24 +45,28 @@ const Home = () => {
     redirectToDefaultGroup();
   }, [groupId, user, navigate, isPublicView]);
 
-  // Fetch group name when groupId changes
+  // Fetch group name and check admin status when groupId changes
   useEffect(() => {
-    const fetchGroupName = async () => {
+    const fetchGroupInfo = async () => {
       if (groupId) {
         try {
           const group = await GroupService.getGroupById(groupId);
           setGroupName(group?.name || null);
+          // Check if current user is the group admin
+          setIsGroupAdmin(user?.id === group?.created_by);
         } catch (error) {
-          console.error('Error fetching group name:', error);
+          console.error('Error fetching group info:', error);
           setGroupName(null);
+          setIsGroupAdmin(false);
         }
       } else {
         setGroupName(null);
+        setIsGroupAdmin(false);
       }
     };
 
-    fetchGroupName();
-  }, [groupId]);
+    fetchGroupInfo();
+  }, [groupId, user?.id]);
 
   // Check for real leaderboard data when component mounts
   useEffect(() => {
@@ -119,16 +124,18 @@ const Home = () => {
       label: "Statistics",
       isActive: activeView === "statistics",
     },
-    {
+    // Only show Participants for group admins
+    ...(isGroupAdmin ? [{
       icon: <Users size={20} />,
       label: "Participants",
       isActive: activeView === "participants",
-    },
-    {
+    }] : []),
+    // Only show Groups for authenticated users
+    ...(user ? [{
       icon: <Settings size={20} />,
       label: "Groups",
       isActive: activeView === "groups",
-    },
+    }] : []),
   ];
 
   const handleSidebarClick = (label: string) => {
@@ -236,7 +243,7 @@ const Home = () => {
             )}
           >
             {activeView === "leaderboard" && hasRealData === false && !showUpload && (
-              <EmptyState onUploadClick={handleUploadClick} />
+              <EmptyState onUploadClick={handleUploadClick} isGroupAdmin={isGroupAdmin} />
             )}
             {activeView === "leaderboard" && (hasRealData === true || showUpload) && (
               <>
@@ -247,6 +254,7 @@ const Home = () => {
                   onUploadClose={() => setShowUpload(false)}
                   onDataRefresh={handleDataRefresh}
                   groupId={groupId}
+                  isGroupAdmin={isGroupAdmin}
                 />
               </>
             )}

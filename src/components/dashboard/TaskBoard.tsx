@@ -54,6 +54,7 @@ interface LeaderboardProps {
   onUploadClose?: () => void;
   onDataRefresh?: () => Promise<void>;
   groupId?: string;
+  isGroupAdmin?: boolean;
 }
 
 const defaultParticipants: Participant[] = [
@@ -116,6 +117,7 @@ const Leaderboard = ({
   onUploadClose = () => {},
   onDataRefresh,
   groupId,
+  isGroupAdmin = false,
 }: LeaderboardProps) => {
   const [loading, setLoading] = useState(isLoading);
   const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
@@ -139,12 +141,17 @@ const Leaderboard = ({
   // Fetch available weeks
   const fetchAvailableWeeks = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('weekly_challenges')
         .select('id, week_number, year, week_start_date, week_end_date')
-        .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
         .order('year', { ascending: false })
         .order('week_number', { ascending: false });
+      
+      if (groupId) {
+        query = query.eq('group_id', groupId);
+      }
+      
+      const { data, error } = await query;
         
       if (error) {
         console.error('Error fetching weeks:', error);
@@ -653,13 +660,15 @@ const Leaderboard = ({
               Overall
             </Button>
           </div>
-          <Button
-            onClick={() => setShowAdminUpload(!showAdminUpload)}
-            className="bg-step-orange hover:bg-step-orange/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors"
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload CSV
-          </Button>
+          {isGroupAdmin && (
+            <Button
+              onClick={() => setShowAdminUpload(!showAdminUpload)}
+              className="bg-step-orange hover:bg-step-orange/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors"
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload CSV
+            </Button>
+          )}
         </div>
       </div>
 
@@ -822,15 +831,17 @@ const Leaderboard = ({
                       No Participants Yet
                     </h3>
                     <p className="text-gray-500 mb-4">
-                      Upload step data to see the leaderboard
+                      {isGroupAdmin ? 'Upload step data to see the leaderboard' : 'No data available yet'}
                     </p>
-                    <Button
-                      onClick={() => setShowAdminUpload(true)}
-                      className="bg-step-green hover:bg-step-green/90 text-white"
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload CSV Data
-                    </Button>
+                    {isGroupAdmin && (
+                      <Button
+                        onClick={() => setShowAdminUpload(true)}
+                        className="bg-step-green hover:bg-step-green/90 text-white"
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload CSV Data
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

@@ -5,9 +5,10 @@ import { Upload, FileSpreadsheet, Users, Trophy } from 'lucide-react';
 
 interface EmptyStateProps {
   onUploadClick?: () => void;
+  isGroupAdmin?: boolean;
 }
 
-export default function EmptyState({ onUploadClick }: EmptyStateProps) {
+export default function EmptyState({ onUploadClick, isGroupAdmin = false }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
       <Card className="w-full max-w-2xl">
@@ -29,10 +30,12 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
 
           {/* Main Message */}
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Welcome to StepUp Leaderboard!
+            {isGroupAdmin ? 'Welcome to StepUp Leaderboard!' : 'No Data Available'}
           </h2>
           <p className="text-lg text-gray-600 mb-6 max-w-lg mx-auto">
-            Get started by uploading your first CSV file with participant step data to create your leaderboard.
+            {isGroupAdmin 
+              ? 'Get started by uploading your first CSV file with participant step data to create your leaderboard.'
+              : 'The group administrator needs to upload step data to view the leaderboard.'}
           </p>
 
           {/* Features List */}
@@ -76,22 +79,26 @@ export default function EmptyState({ onUploadClick }: EmptyStateProps) {
 
           {/* Call to Action */}
           <div className="space-y-4">
-            <Button 
-              onClick={onUploadClick}
-              size="lg" 
-              className="bg-step-teal hover:bg-step-teal/90 text-white px-8 py-3"
-            >
-              <Upload className="h-5 w-5 mr-2" />
-              Upload Your First CSV File
-            </Button>
+            {isGroupAdmin && (
+              <Button 
+                onClick={onUploadClick}
+                size="lg" 
+                className="bg-step-teal hover:bg-step-teal/90 text-white px-8 py-3"
+              >
+                <Upload className="h-5 w-5 mr-2" />
+                Upload Your First CSV File
+              </Button>
+            )}
             
-            <p className="text-sm text-gray-500">
-              Need help? Check our{' '}
-              <a href="#" className="text-step-teal hover:underline">
-                CSV format guide
-              </a>{' '}
-              for the expected data structure.
-            </p>
+            {isGroupAdmin && (
+              <p className="text-sm text-gray-500">
+                Need help? Check our{' '}
+                <a href="#" className="text-step-teal hover:underline">
+                  CSV format guide
+                </a>{' '}
+                for the expected data structure.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -123,6 +123,25 @@ export class GroupService {
     return data;
   }
 
+  static async searchGroupByName(groupName: string): Promise<Group | null> {
+    const { data, error } = await supabase
+      .from('groups')
+      .select('*')
+      .ilike('name', groupName)
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found
+        return null;
+      }
+      throw new Error(`Failed to search group by name: ${error.message}`);
+    }
+
+    return data;
+  }
+
   static async getGroupParticipants(groupId: string) {
     const { data, error } = await supabase
       .from('participants')

@@ -32,17 +32,54 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
+import { GroupService } from "@/lib/groupService";
 import { useState } from "react";
 
 function FindGroupButton() {
   const [groupId, setGroupId] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleFindGroup = () => {
-    if (groupId.trim()) {
-      navigate(`/group/${groupId.trim()}`);
-      setIsOpen(false);
+  const handleFindGroup = async () => {
+    if (!groupId.trim()) return;
+    
+    setIsSearching(true);
+    setError("");
+    
+    try {
+      const searchTerm = groupId.trim();
+      let foundGroup = null;
+      
+      // First try to search by name (case-insensitive)
+      try {
+        foundGroup = await GroupService.searchGroupByName(searchTerm);
+      } catch (err) {
+        // If name search fails, continue to ID search
+        console.log('Name search failed, trying ID search');
+      }
+      
+      // If not found by name, try by ID
+      if (!foundGroup) {
+        try {
+          foundGroup = await GroupService.getGroupById(searchTerm);
+        } catch (err) {
+          console.log('ID search also failed');
+        }
+      }
+      
+      if (foundGroup) {
+        navigate(`/group/${foundGroup.id}`);
+        setIsOpen(false);
+        setGroupId("");
+      } else {
+        setError("Group not found. Please check the group name or ID and try again.");
+      }
+    } catch (err) {
+      setError("An error occurred while searching. Please try again.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -59,30 +96,45 @@ function FindGroupButton() {
             Find Your Step Challenge Group
           </DialogTitle>
           <DialogDescription>
-            Enter your group ID to view the leaderboard. No account required!
+            Enter your group name (e.g., "JackedUp") or group ID to view the leaderboard. No account required!
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="groupId">Group ID</Label>
+            <Label htmlFor="groupId">Group Name or ID</Label>
             <Input
               id="groupId"
-              placeholder="Enter your group ID (e.g., team-alpha-2024)"
+              placeholder="Enter group name (JackedUp) or ID (abc-123-def)"
               value={groupId}
-              onChange={(e) => setGroupId(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleFindGroup()}
+              onChange={(e) => {
+                setGroupId(e.target.value);
+                if (error) setError(""); // Clear error when user types
+              }}
+              onKeyPress={(e) => e.key === "Enter" && !isSearching && handleFindGroup()}
+              disabled={isSearching}
             />
+            {error && (
+              <p className="text-sm text-red-600 mt-1">{error}</p>
+            )}
           </div>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsOpen(false);
+                setError("");
+                setGroupId("");
+              }}
+              disabled={isSearching}
+            >
               Cancel
             </Button>
             <Button
               onClick={handleFindGroup}
               className="bg-step-green hover:bg-step-green/90 text-white"
-              disabled={!groupId.trim()}
+              disabled={!groupId.trim() || isSearching}
             >
-              View Leaderboard
+              {isSearching ? "Searching..." : "View Leaderboard"}
             </Button>
           </div>
         </div>
@@ -205,14 +257,7 @@ export default function LandingPage() {
                       Join Challenge <ChevronRight className="ml-2 h-5 w-5" />
                     </Button>
                   </Link>
-                  <Link to="/demo">
-                    <Button
-                      variant="outline"
-                      className="border-step-teal text-step-teal hover:bg-step-teal hover:text-white px-8 py-3 text-lg font-medium rounded-full transition-all"
-                    >
-                      View Demo <Target className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
+                  <FindGroupButton />
                 </>
               )}
             </div>
@@ -327,16 +372,8 @@ export default function LandingPage() {
                 </Button>
               </Link>
             ) : (
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <div className="flex justify-center">
                 <FindGroupButton />
-                <Link to="/demo">
-                  <Button
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-step-teal px-8 py-3 text-lg font-medium rounded-full transition-all"
-                  >
-                    View Demo
-                  </Button>
-                </Link>
               </div>
             )}
           </div>

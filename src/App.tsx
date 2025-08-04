@@ -41,14 +41,7 @@ function AppRoutes() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/dashboard/:groupId"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
+        <Route path="/dashboard/:groupId" element={<Dashboard />} />
         <Route path="/success" element={<Success />} />
         <Route path="/demo" element={<Dashboard />} />
         <Route path="/group/:groupId" element={<GroupInvite />} />
