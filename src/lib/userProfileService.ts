@@ -134,7 +134,7 @@ export class UserProfileService {
 
       // Calculate statistics
       const totalSteps = entries.reduce((sum, entry) => sum + (entry.steps || 0), 0);
-      const totalDistance = entries.reduce((sum, entry) => sum + parseFloat(entry.distance_km || '0'), 0);
+      const totalDistance = entries.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
       const totalPoints = entries.reduce((sum, entry) => sum + (entry.points || 0), 0);
       const weeksParticipated = entries.length;
       const averageSteps = weeksParticipated > 0 ? Math.round(totalSteps / weeksParticipated) : 0;

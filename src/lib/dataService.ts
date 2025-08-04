@@ -118,7 +118,7 @@ export class DataService {
           participant_id,
           points,
           steps,
-          distance_km,
+          distance_mi,
           participant:participants!inner(
             id,
             name,
@@ -153,7 +153,7 @@ export class DataService {
         const participant = entry.participant;
         const points = entry.points || 0;
         const steps = entry.steps || 0;
-        const distance = parseFloat(entry.distance_km || '0');
+        const distance = parseFloat(entry.distance_mi || '0');
         
         if (participantStats.has(participantId)) {
           const existing = participantStats.get(participantId);

@@ -105,7 +105,7 @@ const Statistics = ({ isLoading = false, groupId }: StatisticsProps) => {
           if (weeklyData.length > 0) {
             const topPerformer = weeklyData[0];
             const totalSteps = weeklyData.reduce((sum, entry) => sum + entry.steps, 0);
-            const totalDistance = weeklyData.reduce((sum, entry) => sum + parseFloat(entry.distance_km || '0'), 0);
+            const totalDistance = weeklyData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
             const avgSteps = Math.round(totalSteps / weeklyData.length);
             const mostImproved = weeklyData[1] || weeklyData[0];
             

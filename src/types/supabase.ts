@@ -48,7 +48,7 @@ export type Database = {
         Row: {
           challenge_id: string | null
           created_at: string | null
-          distance_km: number | null
+          distance_mi: number | null
           id: string
           participant_id: string | null
           points: number
@@ -59,7 +59,7 @@ export type Database = {
         Insert: {
           challenge_id?: string | null
           created_at?: string | null
-          distance_km?: number | null
+          distance_mi?: number | null
           id?: string
           participant_id?: string | null
           points?: number
@@ -70,7 +70,7 @@ export type Database = {
         Update: {
           challenge_id?: string | null
           created_at?: string | null
-          distance_km?: number | null
+          distance_mi?: number | null
           id?: string
           participant_id?: string | null
           points?: number

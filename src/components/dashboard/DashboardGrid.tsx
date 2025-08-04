@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trophy, Target, TrendingUp, Users, Medal, Crown } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DataService } from "@/lib/dataService";
+import { useUnitPreference } from "@/contexts/UnitPreferenceContext";
 
 interface StatsCardProps {
   title: string;
@@ -123,11 +124,8 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
   );
 };
 
-const DashboardGrid = ({
-  statsCards,
-  isLoading = false,
-  groupId,
-}: DashboardGridProps) => {
+const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = false, groupId }) => {
+  const { convertDistance, getDistanceAbbreviation } = useUnitPreference();
   const [loading, setLoading] = useState(isLoading);
   const [realStatsCards, setRealStatsCards] = useState<StatsCardProps[]>([]);
   const [hasData, setHasData] = useState(false);
@@ -143,7 +141,7 @@ const DashboardGrid = ({
           // Calculate real statistics from the data
           const topPerformer = leaderboardData[0];
           const totalSteps = leaderboardData.reduce((sum, entry) => sum + entry.steps, 0);
-          const totalDistance = leaderboardData.reduce((sum, entry) => sum + parseFloat(entry.distance_km || '0'), 0);
+          const totalDistance = leaderboardData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
           const avgSteps = Math.round(totalSteps / leaderboardData.length);
           
           // Find most improved (for now, just use second place or a placeholder)
@@ -180,7 +178,7 @@ const DashboardGrid = ({
             },
             {
               title: "Total Distance",
-              value: `${totalDistance.toFixed(1)} km`,
+              value: `${convertDistance(totalDistance).toFixed(1)} ${getDistanceAbbreviation()}`,
               subtitle: "Covered by all participants",
               icon: <Target className="h-5 w-5" />,
               color: "step-red",

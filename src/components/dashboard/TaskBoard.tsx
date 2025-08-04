@@ -213,7 +213,7 @@ const Leaderboard = ({
             name: entry.participant?.name || 'Unknown',
             rank: entry.rank || index + 1,
             steps: entry.steps,
-            distance: parseFloat(entry.distance_km || '0'),
+            distance: parseFloat(entry.distance_mi || '0'),
             points: entry.points,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${entry.participant?.name || 'user'}`,
           }));
@@ -402,7 +402,7 @@ const Leaderboard = ({
             .from('leaderboard_entries')
             .update({
               steps: participant.steps,
-              distance_km: participant.distance.toString(),
+              distance_mi: participant.distance.toString(),
               points: points,
               rank: rank,
               updated_at: new Date().toISOString()
@@ -420,7 +420,7 @@ const Leaderboard = ({
               challenge_id: challenge.id,
               participant_id: participantData.id,
               steps: participant.steps,
-              distance_km: participant.distance.toString(),
+              distance_mi: participant.distance.toString(),
               points: points,
               rank: rank
             });
