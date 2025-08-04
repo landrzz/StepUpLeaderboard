@@ -16,20 +16,6 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               </Link>
             </div>
           </div>
-          <nav className="hidden md:flex items-center space-x-7 text-sm font-light">
-            <Link to="/" className="hover:text-step-green">
-              Leaderboard
-            </Link>
-            <Link to="/" className="hover:text-step-green">
-              Statistics
-            </Link>
-            <Link to="/" className="hover:text-step-green">
-              Weekly History
-            </Link>
-            <Link to="/" className="hover:text-step-green">
-              Support
-            </Link>
-          </nav>
         </div>
       </header>
 

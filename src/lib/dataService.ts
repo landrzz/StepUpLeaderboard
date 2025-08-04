@@ -1,5 +1,21 @@
 import { supabase } from '../../supabase/supabase';
 
+interface Participant {
+  name: string;
+  email: string;
+  group_id: string;
+  [key: string]: any;
+}
+
+interface LeaderboardEntry {
+  participant_id: string;
+  challenge_id: string;
+  steps: number;
+  distance_mi: number;
+  points: number;
+  [key: string]: any;
+}
+
 export class DataService {
   /**
    * Check if there's real (non-dummy) data in the database
@@ -117,6 +133,136 @@ export class DataService {
   /**
    * Get overall leaderboard with cumulative points and steps across all weeks
    */
+  /**
+   * Get available weeks/challenges for a group
+   * @param groupId - Group ID to filter by
+   */
+  static async getAvailableWeeks(groupId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('weekly_challenges')
+        .select('*')
+        .eq('group_id', groupId)
+        .order('year', { ascending: false })
+        .order('week_number', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching available weeks:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching available weeks:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get participants for a specific group
+   * @param groupId - Group ID to filter by
+   */
+  static async getGroupParticipants(groupId: string) {
+    try {
+      // Count entries per participant as well
+      const { data, error } = await supabase
+        .from('participants')
+        .select(`
+          *,
+          entries:leaderboard_entries(count)
+        `)
+        .eq('group_id', groupId)
+        .not('email', 'like', '%@example.com');
+
+      if (error) {
+        console.error('Error fetching group participants:', error);
+        return [];
+      }
+
+      // Format the participant data with entry counts
+      return data?.map(participant => ({
+        ...participant,
+        entry_count: participant.entries?.[0]?.count || 0
+      })) || [];
+    } catch (error) {
+      console.error('Error fetching group participants:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find a participant by name in a specific group
+   * @param name - Participant name to search for
+   * @param groupId - Group ID to filter by
+   */
+  static async getParticipantByName(name: string, groupId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('participants')
+        .select('*')
+        .eq('group_id', groupId)
+        .ilike('name', name.trim());
+
+      if (error) {
+        console.error('Error finding participant by name:', error);
+        return null;
+      }
+
+      return data || null;
+    } catch (error) {
+      console.error('Error finding participant by name:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new participant
+   * @param participant - Participant data to create
+   */
+  static async createParticipant(participant: Participant) {
+    try {
+      const { data, error } = await supabase
+        .from('participants')
+        .insert([participant])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating participant:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error creating participant:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new leaderboard entry
+   * @param entry - Leaderboard entry data to create
+   */
+  static async createLeaderboardEntry(entry: LeaderboardEntry) {
+    try {
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .insert([entry])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating leaderboard entry:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error creating leaderboard entry:', error);
+      throw error;
+    }
+  }
+
   static async getOverallLeaderboard(groupId?: string) {
     try {
       let query = supabase

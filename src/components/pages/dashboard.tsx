@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../supabase/auth";
 import GroupManager from "../groups/GroupManager";
+import ParticipantManager from "@/components/participants/ParticipantManager";
 import { DataService } from "@/lib/dataService";
 import { GroupService } from "@/lib/groupService";
 
@@ -120,11 +121,7 @@ const Home = () => {
       label: "Leaderboard",
       isActive: activeView === "leaderboard",
     },
-    {
-      icon: <BarChart3 size={20} />,
-      label: "Statistics",
-      isActive: activeView === "statistics",
-    },
+    // Statistics page removed - now integrated into Leaderboard
     // Only show Participants for group admins
     ...(isGroupAdmin ? [{
       icon: <Users size={20} />,
@@ -272,19 +269,9 @@ const Home = () => {
                 </div>
               </div>
             )}
-            {activeView === "statistics" && (
-              <Statistics isLoading={loading} groupId={groupId} selectedWeek={selectedWeek} />
-            )}
+            {/* Statistics page removed - now integrated into Leaderboard */}
             {activeView === "participants" && (
-              <div className="text-center py-12">
-                <Users className="h-16 w-16 text-step-teal mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-step-teal mb-2">
-                  Participant Management
-                </h3>
-                <p className="text-gray-600">
-                  Manage participants and team assignments coming soon
-                </p>
-              </div>
+              <ParticipantManager groupId={groupId} />
             )}
             {activeView === "groups" && (
               <GroupManager currentGroupId={groupId} />

@@ -6,8 +6,10 @@ export type DistanceUnit = 'kilometers' | 'miles';
 
 interface UnitPreferenceContextType {
   distanceUnit: DistanceUnit;
+  unitPreference: DistanceUnit; // Alias for distanceUnit for consistent naming
   setDistanceUnit: (unit: DistanceUnit) => void;
   convertDistance: (distanceMi: number) => number;
+  convertDistanceToMiles: (distance: number) => number; // For converting back to miles
   getDistanceLabel: () => string;
   getDistanceAbbreviation: () => string;
 }
@@ -59,6 +61,13 @@ export const UnitPreferenceProvider: React.FC<UnitPreferenceProviderProps> = ({ 
     return distanceMi; // Return as miles
   };
 
+  const convertDistanceToMiles = (distance: number): number => {
+    if (distanceUnit === 'kilometers') {
+      return distance / 1.60934; // Convert km to miles
+    }
+    return distance; // Already in miles
+  };
+
   const getDistanceLabel = (): string => {
     return distanceUnit === 'miles' ? 'miles' : 'kilometers';
   };
@@ -69,8 +78,10 @@ export const UnitPreferenceProvider: React.FC<UnitPreferenceProviderProps> = ({ 
 
   const value: UnitPreferenceContextType = {
     distanceUnit,
+    unitPreference: distanceUnit, // Add alias for consistent naming
     setDistanceUnit,
     convertDistance,
+    convertDistanceToMiles,
     getDistanceLabel,
     getDistanceAbbreviation,
   };
