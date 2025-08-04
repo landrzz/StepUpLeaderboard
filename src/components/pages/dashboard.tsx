@@ -22,6 +22,7 @@ const Home = () => {
   const [groupName, setGroupName] = useState<string | null>(null);
   const [isGroupAdmin, setIsGroupAdmin] = useState<boolean>(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
   const { groupId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -87,6 +88,10 @@ const Home = () => {
 
   const handleWeekChange = (weekId: string) => {
     setSelectedWeek(weekId);
+  };
+
+  const handleViewModeChange = (mode: 'weekly' | 'overall') => {
+    setViewMode(mode);
   };
 
   // Handle upload button click
@@ -239,7 +244,6 @@ const Home = () => {
             )}
             {activeView === "leaderboard" && (hasRealData === true || showUpload) && (
               <>
-                {hasRealData === true && <DashboardGrid isLoading={loading} groupId={groupId} />}
                 <Leaderboard 
                   isLoading={loading} 
                   showUpload={showUpload}
@@ -249,7 +253,15 @@ const Home = () => {
                   isGroupAdmin={isGroupAdmin}
                   selectedWeek={selectedWeek}
                   onWeekChange={handleWeekChange}
+                  viewMode={viewMode}
+                  onViewModeChange={handleViewModeChange}
                 />
+                {hasRealData === true && <DashboardGrid 
+                  isLoading={loading} 
+                  groupId={groupId} 
+                  selectedWeek={selectedWeek}
+                  viewMode={viewMode}
+                />}
               </>
             )}
             {activeView === "leaderboard" && hasRealData === null && (

@@ -18,6 +18,8 @@ interface DashboardGridProps {
   statsCards?: StatsCardProps[];
   isLoading?: boolean;
   groupId?: string;
+  selectedWeek?: string;
+  viewMode?: 'weekly' | 'overall';
 }
 
 const defaultStatsCards: StatsCardProps[] = [
@@ -124,18 +126,26 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
   );
 };
 
-const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = false, groupId }) => {
+const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = false, groupId, selectedWeek, viewMode = 'weekly' }) => {
   const { convertDistance, getDistanceAbbreviation } = useUnitPreference();
   const [loading, setLoading] = useState(isLoading);
   const [realStatsCards, setRealStatsCards] = useState<StatsCardProps[]>([]);
   const [hasData, setHasData] = useState(false);
 
-  // Fetch real data when component mounts
+  // Fetch real data when component mounts or when viewMode/selectedWeek changes
   useEffect(() => {
     const fetchRealData = async () => {
       try {
-        const leaderboardData = await DataService.getRealLeaderboardData(groupId);
-        const participantStats = await DataService.getRealParticipantStats();
+        // Fetch data based on view mode
+        let leaderboardData;
+        
+        if (viewMode === 'weekly') {
+          // For weekly view, get data filtered by the selected week
+          leaderboardData = await DataService.getRealLeaderboardData(groupId, selectedWeek);
+        } else {
+          // For overall view, get overall leaderboard data
+          leaderboardData = await DataService.getOverallLeaderboard(groupId);
+        }
         
         if (leaderboardData.length > 0) {
           // Calculate real statistics from the data
@@ -204,7 +214,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = f
     };
 
     fetchRealData();
-  }, [groupId]);
+  }, [groupId, selectedWeek, viewMode]);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -278,7 +288,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = f
           Challenge Statistics
         </h2>
         <p className="text-gray-600">
-          Weekly performance highlights and key metrics
+          {viewMode === 'weekly' ? 'Weekly performance highlights and key metrics' : 'Overall performance highlights across all weeks'}
         </p>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -55,6 +55,8 @@ interface LeaderboardProps {
   onDataRefresh?: () => Promise<void>;
   groupId?: string;
   isGroupAdmin?: boolean;
+  viewMode?: 'weekly' | 'overall';
+  onViewModeChange?: (mode: 'weekly' | 'overall') => void;
 }
 
 const defaultParticipants: Participant[] = [
@@ -105,7 +107,7 @@ const defaultParticipants: Participant[] = [
   },
 ];
 
-const Leaderboard = ({
+const Leaderboard: React.FC<LeaderboardProps> = ({
   participants,
   selectedWeek = "2024-W03",
   onWeekChange = () => {},
@@ -118,7 +120,9 @@ const Leaderboard = ({
   onDataRefresh,
   groupId,
   isGroupAdmin = false,
-}: LeaderboardProps) => {
+  viewMode = 'weekly',
+  onViewModeChange = () => {},
+}) => {
   const [loading, setLoading] = useState(isLoading);
   const [showAdminUpload, setShowAdminUpload] = useState(showUpload);
   const [realParticipants, setRealParticipants] = useState<Participant[]>([]);
@@ -127,7 +131,6 @@ const Leaderboard = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [availableWeeks, setAvailableWeeks] = useState<Array<{id: string, weekNumber: number, year: number, startDate: string, endDate: string}>>([]);
-  const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
   
   // Unit preference hook
   const { convertDistance, getDistanceAbbreviation } = useUnitPreference();
@@ -706,7 +709,7 @@ const Leaderboard = ({
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('weekly')}
+              onClick={() => onViewModeChange('weekly')}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'weekly' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
@@ -719,7 +722,7 @@ const Leaderboard = ({
             <Button
               variant={viewMode === 'overall' ? 'default' : 'ghost'}
               size="sm"
-              onClick={() => setViewMode('overall')}
+              onClick={() => onViewModeChange('overall')}
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'overall' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
