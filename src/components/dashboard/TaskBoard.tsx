@@ -127,7 +127,6 @@ const Leaderboard = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [availableWeeks, setAvailableWeeks] = useState<Array<{id: string, weekNumber: number, year: number, startDate: string, endDate: string}>>([]);
-  const [currentWeek, setCurrentWeek] = useState<string>('');
   const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
   
   // Unit preference hook
@@ -169,9 +168,8 @@ const Leaderboard = ({
       setAvailableWeeks(weeks);
       
       // Set current week as default (most recent)
-      if (weeks.length > 0) {
-        const weekKey = `${weeks[0].year}-W${weeks[0].weekNumber.toString().padStart(2, '0')}`;
-        setCurrentWeek(weekKey);
+      if (weeks.length > 0 && !selectedWeek) {
+        onWeekChange(weeks[0].id);
       }
     } catch (error) {
       console.error('Error fetching available weeks:', error);
@@ -201,11 +199,12 @@ const Leaderboard = ({
     }
   };
 
-  // Fetch real data when component mounts
-  useEffect(() => {
-    const fetchRealData = async () => {
-      try {
-        const leaderboardData = await DataService.getRealLeaderboardData(groupId);
+  // Fetch real data function
+  const fetchRealData = async () => {
+    try {
+      // Use selectedWeek if available, otherwise get all data
+      const weekId = selectedWeek || undefined;
+      const leaderboardData = await DataService.getRealLeaderboardData(groupId, weekId);
         
         if (leaderboardData.length > 0) {
           const transformedParticipants: Participant[] = leaderboardData.map((entry, index) => ({
@@ -223,16 +222,24 @@ const Leaderboard = ({
         } else {
           setHasData(false);
         }
-      } catch (error) {
-        console.error('Error fetching real leaderboard data:', error);
-        setHasData(false);
-      }
-    };
+    } catch (error) {
+      console.error('Error fetching real leaderboard data:', error);
+      setHasData(false);
+    }
+  };
 
-    fetchRealData();
+  // Fetch data when component mounts or groupId changes
+  useEffect(() => {
     fetchOverallData();
     fetchAvailableWeeks();
   }, [groupId]);
+  
+  // Refetch data when selected week changes
+  useEffect(() => {
+    if (selectedWeek) {
+      fetchRealData();
+    }
+  }, [selectedWeek]);
 
   // Simulate loading for demo purposes
   useEffect(() => {
@@ -281,7 +288,7 @@ const Leaderboard = ({
   };
 
   // Function to save participants to database with proper week handling
-  const saveParticipantsToDatabase = async (participants: any[]) => {
+  const saveParticipantsToDatabase = async (participants: any[], csvStartDate?: Date | null, csvEndDate?: Date | null) => {
     const { supabase } = await import('../../../supabase/supabase');
     
     try {
@@ -305,31 +312,71 @@ const Leaderboard = ({
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
       };
       
-      // For now, assume current week - in future, parse dates from CSV if available
-      const currentDate = new Date();
-      const { monday: weekStart, sunday: weekEnd } = getMondayWeekBounds(currentDate);
-      const weekNumber = getWeekNumber(currentDate);
-      const year = currentDate.getFullYear();
+      // Use CSV dates if available, otherwise fall back to current week
+      let weekStart: Date, weekEnd: Date, weekNumber: number, year: number;
+      
+      if (csvStartDate && csvEndDate) {
+        // Validate that CSV dates represent a Monday-Sunday week
+        const csvStart = new Date(csvStartDate);
+        const csvEnd = new Date(csvEndDate);
+        
+        // Check if it's a proper Monday-Sunday week
+        const startDay = csvStart.getDay(); // 0 = Sunday, 1 = Monday
+        const endDay = csvEnd.getDay();
+        
+        if (startDay !== 1 || endDay !== 0) {
+          console.warn('CSV dates do not represent a Monday-Sunday week. Adjusting to proper week boundaries.');
+        }
+        
+        // Use the Monday-Sunday boundaries for the CSV start date
+        const { monday, sunday } = getMondayWeekBounds(csvStart);
+        weekStart = monday;
+        weekEnd = sunday;
+        weekNumber = getWeekNumber(csvStart);
+        year = csvStart.getFullYear();
+        
+        console.log('Using CSV date range:', { csvStartDate, csvEndDate, adjustedStart: weekStart, adjustedEnd: weekEnd });
+      } else {
+        // Fall back to current week
+        const currentDate = new Date();
+        const { monday, sunday } = getMondayWeekBounds(currentDate);
+        weekStart = monday;
+        weekEnd = sunday;
+        weekNumber = getWeekNumber(currentDate);
+        year = currentDate.getFullYear();
+        
+        console.log('Using current week (no CSV dates found)');
+      }
       
       console.log('Processing week:', { weekStart, weekEnd, weekNumber, year });
       
       // Check if weekly challenge already exists
+      if (!groupId) {
+        throw new Error('Group ID is required for CSV upload');
+      }
+      
       let { data: existingChallenge } = await supabase
         .from('weekly_challenges')
         .select('*')
-        .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
+        .eq('group_id', groupId)
         .eq('week_number', weekNumber)
         .eq('year', year)
         .single();
       
       let challenge = existingChallenge;
       
+      // Warn user if updating existing data
+      if (existingChallenge) {
+        console.log(`⚠️  Updating existing data for Week ${weekNumber}, ${year} (${weekStart.toISOString().split('T')[0]} to ${weekEnd.toISOString().split('T')[0]})`);
+        console.log('This will overwrite any existing participant data for this week.');
+      }
+      
       // Create weekly challenge if it doesn't exist
       if (!existingChallenge) {
         const { data: newChallenge, error: challengeError } = await supabase
           .from('weekly_challenges')
           .insert({
-            group_id: '550e8400-e29b-41d4-a716-446655440000',
+            group_id: groupId,
             week_start_date: weekStart.toISOString().split('T')[0],
             week_end_date: weekEnd.toISOString().split('T')[0],
             week_number: weekNumber,
@@ -362,7 +409,7 @@ const Leaderboard = ({
         let { data: existingParticipant } = await supabase
           .from('participants')
           .select('*')
-          .eq('group_id', '550e8400-e29b-41d4-a716-446655440000')
+          .eq('group_id', groupId)
           .eq('name', participant.name)
           .single();
         
@@ -373,7 +420,7 @@ const Leaderboard = ({
           const { data: newParticipant, error: participantError } = await supabase
             .from('participants')
             .insert({
-              group_id: '550e8400-e29b-41d4-a716-446655440000',
+              group_id: groupId,
               name: participant.name,
               email: `${participant.name.toLowerCase().replace(/\s+/g, '.')}@uploaded.com`,
               is_active: true
@@ -491,7 +538,26 @@ const Leaderboard = ({
       const stepsIndex = findColumnIndex(['total steps', 'steps', 'step count', 'step total']);
       const distanceIndex = findColumnIndex(['total distance', 'distance', 'dist']);
       
+      // Extract date range from headers (usually last two columns)
+      let weekStartDate: Date | null = null;
+      let weekEndDate: Date | null = null;
+      
+      // Look for date patterns in headers (YYYY-MM-DD format)
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      const dateHeaders = headers.filter(h => datePattern.test(h.trim()));
+      
+      if (dateHeaders.length >= 2) {
+        // Sort dates to ensure start and end are correct
+        const sortedDates = dateHeaders.sort();
+        weekStartDate = new Date(sortedDates[0]);
+        weekEndDate = new Date(sortedDates[sortedDates.length - 1]);
+        console.log('Extracted date range from CSV:', { weekStartDate, weekEndDate });
+      } else {
+        console.log('No date headers found, will use current week');
+      }
+      
       console.log('Column indices:', { nameIndex, stepsIndex, distanceIndex });
+      console.log('Date headers found:', dateHeaders);
       
       // Validate required columns
       if (nameIndex === -1) {
@@ -535,9 +601,14 @@ const Leaderboard = ({
       
       // Create participants and leaderboard entries
       // Note: This is a simplified implementation
-      await saveParticipantsToDatabase(participants);
+      await saveParticipantsToDatabase(participants, weekStartDate, weekEndDate);
       
-      alert(`Successfully uploaded ${participants.length} participants to the leaderboard!`);
+      // Create success message with week information
+      const weekInfo = weekStartDate && weekEndDate 
+        ? `for week ${weekStartDate.toISOString().split('T')[0]} to ${weekEndDate.toISOString().split('T')[0]}`
+        : 'for the current week';
+      
+      alert(`Successfully uploaded ${participants.length} participants to the leaderboard ${weekInfo}!`);
       
       // Reset upload state and refresh data
       setSelectedFile(null);
@@ -611,18 +682,17 @@ const Leaderboard = ({
         <div className="flex items-center gap-4">
           {/* Week Selector - only show in weekly mode */}
           {viewMode === 'weekly' && (
-            <Select value={currentWeek} onValueChange={(value) => setCurrentWeek(value)}>
+            <Select value={selectedWeek} onValueChange={(value) => onWeekChange(value)}>
               <SelectTrigger className="w-64">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Select week" />
               </SelectTrigger>
               <SelectContent>
                 {availableWeeks.map((week) => {
-                  const weekKey = `${week.year}-W${week.weekNumber.toString().padStart(2, '0')}`;
                   const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   return (
-                    <SelectItem key={weekKey} value={weekKey} className="text-sm">
+                    <SelectItem key={week.id} value={week.id} className="text-sm">
                       Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
                     </SelectItem>
                   );
@@ -705,10 +775,10 @@ const Leaderboard = ({
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left">
                   <p className="text-xs font-medium text-amber-800 mb-1">📅 Important Upload Requirements:</p>
                   <ul className="text-xs text-amber-700 space-y-1">
-                    <li>• Upload CSV files for previous week (Monday-Sunday) every Monday</li>
-                    <li>• Do NOT include overlapping dates in your CSV files</li>
-                    <li>• Each CSV should contain data for exactly one week period</li>
-                    <li>• Fresh uploads will update existing data for the same week</li>
+                    <li>• Include date headers (YYYY-MM-DD format) in your CSV to specify the week</li>
+                    <li>• Each CSV should contain data for exactly one Monday-Sunday week period</li>
+                    <li>• Re-uploading data for the same week will update existing entries</li>
+                    <li>• You can backfill data by uploading CSVs with past week dates</li>
                   </ul>
                 </div>
                 {selectedFile && (

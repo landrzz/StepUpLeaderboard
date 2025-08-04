@@ -28,8 +28,10 @@ export class DataService {
 
   /**
    * Get real leaderboard data (excluding dummy data)
+   * @param groupId - Optional group ID to filter by
+   * @param weekId - Optional week challenge ID to filter by specific week
    */
-  static async getRealLeaderboardData(groupId?: string) {
+  static async getRealLeaderboardData(groupId?: string, weekId?: string) {
     try {
       let query = supabase
         .from('leaderboard_entries')
@@ -54,6 +56,11 @@ export class DataService {
       // Filter by group if groupId is provided
       if (groupId) {
         query = query.eq('participant.group_id', groupId);
+      }
+      
+      // Filter by week if weekId is provided
+      if (weekId) {
+        query = query.eq('challenge_id', weekId);
       }
       
       const { data, error } = await query.order('rank', { ascending: true });

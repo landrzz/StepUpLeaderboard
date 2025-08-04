@@ -17,6 +17,7 @@ interface StatsCardProps {
 interface StatisticsProps {
   isLoading?: boolean;
   groupId?: string;
+  selectedWeek?: string;
 }
 
 const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
@@ -78,7 +79,7 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
   );
 };
 
-const Statistics = ({ isLoading = false, groupId }: StatisticsProps) => {
+const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProps) => {
   const [loading, setLoading] = useState(isLoading);
   const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
   const [weeklyStats, setWeeklyStats] = useState<StatsCardProps[]>([]);
@@ -92,8 +93,8 @@ const Statistics = ({ isLoading = false, groupId }: StatisticsProps) => {
       try {
         setLoading(true);
         
-        // Fetch weekly data (current week)
-        const weeklyData = await DataService.getRealLeaderboardData(groupId);
+        // Fetch weekly data (current week or selected week)
+        const weeklyData = await DataService.getRealLeaderboardData(groupId, selectedWeek);
         
         // Fetch overall data (all weeks combined)
         const overallData = await DataService.getOverallLeaderboard(groupId);
@@ -225,7 +226,7 @@ const Statistics = ({ isLoading = false, groupId }: StatisticsProps) => {
     };
 
     fetchData();
-  }, [groupId, convertDistance, getDistanceLabel, getDistanceAbbreviation]);
+  }, [groupId, selectedWeek, convertDistance, getDistanceLabel, getDistanceAbbreviation]);
 
   // Get current display data based on view mode
   const currentStats = viewMode === 'weekly' ? weeklyStats : overallStats;

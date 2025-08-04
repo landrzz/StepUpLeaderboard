@@ -4,18 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Users, Calendar, Copy, ExternalLink, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Users, Calendar, Copy, ExternalLink, Loader2, Trash2 } from 'lucide-react';
 import { GroupService, Group } from '@/lib/groupService';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import CreateGroupModal from './CreateGroupModal';
 
-export default function GroupManager() {
+interface GroupManagerProps {
+  currentGroupId?: string;
+}
+
+export default function GroupManager({ currentGroupId }: GroupManagerProps) {
   const [userGroups, setUserGroups] = useState<Group[]>([]);
   const [joinGroupId, setJoinGroupId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -93,6 +109,58 @@ export default function GroupManager() {
     navigate(`/dashboard/${groupId}`);
   };
 
+  const openDeleteDialog = (group: Group) => {
+    setGroupToDelete(group);
+    setDeleteConfirmation('');
+    setDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setGroupToDelete(null);
+    setDeleteConfirmation('');
+    setIsDeleting(false);
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!groupToDelete || deleteConfirmation !== groupToDelete.name) {
+      toast({
+        title: 'Error',
+        description: 'Please type the group name exactly to confirm deletion',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await GroupService.deleteGroup(groupToDelete.id);
+      toast({
+        title: 'Success',
+        description: `Group "${groupToDelete.name}" has been permanently deleted`,
+      });
+      
+      // Refresh the groups list
+      await loadUserGroups();
+      
+      // If we're currently viewing the deleted group, navigate away
+      if (currentGroupId === groupToDelete.id) {
+        navigate('/dashboard');
+      }
+      
+      closeDeleteDialog();
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to delete group',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -163,7 +231,11 @@ export default function GroupManager() {
               {userGroups.map((group) => (
                 <div
                   key={group.id}
-                  className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                  className={`border rounded-lg p-4 hover:bg-muted/50 transition-colors ${
+                    currentGroupId === group.id 
+                      ? 'border-step-green bg-step-green/5 shadow-md ring-1 ring-step-green/20' 
+                      : ''
+                  }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="space-y-2 flex-1">
@@ -200,14 +272,23 @@ export default function GroupManager() {
                       </div>
                     </div>
                     
-                    <Button
-                      size="sm"
-                      onClick={() => navigateToGroup(group.id)}
-                      className="ml-4"
-                    >
-                      <ExternalLink size={14} className="mr-1" />
-                      View
-                    </Button>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        onClick={() => navigateToGroup(group.id)}
+                      >
+                        <ExternalLink size={14} className="mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => openDeleteDialog(group)}
+                      >
+                        <Trash2 size={14} className="mr-1" />
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -215,6 +296,72 @@ export default function GroupManager() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 size={20} />
+              Delete Group
+            </DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>
+                You are about to permanently delete the group{' '}
+                <strong>"{groupToDelete?.name}"</strong>.
+              </p>
+              <p className="text-destructive font-medium">
+                ⚠️ This action is irreversible and will delete:
+              </p>
+              <ul className="list-disc list-inside text-sm space-y-1 ml-4">
+                <li>All participants in this group</li>
+                <li>All weekly challenges</li>
+                <li>All leaderboard entries and data</li>
+                <li>The group itself</li>
+              </ul>
+              <p className="font-medium">
+                To confirm, type the group name exactly: <code className="bg-muted px-1 rounded">{groupToDelete?.name}</code>
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Input
+              placeholder="Type group name to confirm"
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value)}
+              className="font-mono"
+            />
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={closeDeleteDialog}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteGroup}
+              disabled={isDeleting || deleteConfirmation !== groupToDelete?.name}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Permanently
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

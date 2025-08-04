@@ -21,6 +21,7 @@ const Home = () => {
   const [showUpload, setShowUpload] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [isGroupAdmin, setIsGroupAdmin] = useState<boolean>(false);
+  const [selectedWeek, setSelectedWeek] = useState<string>('');
   const { groupId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -84,13 +85,8 @@ const Home = () => {
     checkForRealData();
   }, [groupId]);
 
-  // Function to trigger loading state for demonstration
-  const handleRefresh = () => {
-    setLoading(true);
-    // Reset loading after 2 seconds
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+  const handleWeekChange = (weekId: string) => {
+    setSelectedWeek(weekId);
   };
 
   // Handle upload button click
@@ -208,7 +204,7 @@ const Home = () => {
                   </div>
                 </div>
                 <Button
-                  onClick={handleRefresh}
+                  onClick={handleDataRefresh}
                   className="bg-step-green hover:bg-step-green/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors flex items-center gap-2"
                 >
                   <RefreshCw
@@ -222,7 +218,7 @@ const Home = () => {
           {!isPublicView && (
             <div className="container mx-auto px-6 pt-4 pb-2 flex justify-end">
               <Button
-                onClick={handleRefresh}
+                onClick={handleDataRefresh}
                 className="bg-step-green hover:bg-step-green/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors flex items-center gap-2"
               >
                 <RefreshCw
@@ -251,6 +247,8 @@ const Home = () => {
                   onDataRefresh={handleDataRefresh}
                   groupId={groupId}
                   isGroupAdmin={isGroupAdmin}
+                  selectedWeek={selectedWeek}
+                  onWeekChange={handleWeekChange}
                 />
               </>
             )}
@@ -263,7 +261,7 @@ const Home = () => {
               </div>
             )}
             {activeView === "statistics" && (
-              <Statistics isLoading={loading} groupId={groupId} />
+              <Statistics isLoading={loading} groupId={groupId} selectedWeek={selectedWeek} />
             )}
             {activeView === "participants" && (
               <div className="text-center py-12">
@@ -277,7 +275,7 @@ const Home = () => {
               </div>
             )}
             {activeView === "groups" && (
-              <GroupManager />
+              <GroupManager currentGroupId={groupId} />
             )}
           </div>
         </main>

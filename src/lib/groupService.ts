@@ -156,4 +156,81 @@ export class GroupService {
 
     return data || [];
   }
+
+  static async deleteGroup(groupId: string): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('User must be authenticated to delete a group');
+    }
+
+    // First, verify the user owns this group
+    const { data: group, error: groupError } = await supabase
+      .from('groups')
+      .select('created_by')
+      .eq('id', groupId)
+      .single();
+
+    if (groupError) {
+      throw new Error(`Failed to find group: ${groupError.message}`);
+    }
+
+    if (group.created_by !== user.id) {
+      throw new Error('Only the group owner can delete this group');
+    }
+
+    // Delete in reverse order of dependencies to avoid foreign key constraints
+    // 1. First get all challenge IDs for this group
+    const { data: challenges, error: challengesFetchError } = await supabase
+      .from('weekly_challenges')
+      .select('id')
+      .eq('group_id', groupId);
+
+    if (challengesFetchError) {
+      throw new Error(`Failed to fetch challenges: ${challengesFetchError.message}`);
+    }
+
+    // 2. Delete leaderboard entries for these challenges
+    if (challenges && challenges.length > 0) {
+      const challengeIds = challenges.map(c => c.id);
+      const { error: leaderboardError } = await supabase
+        .from('leaderboard_entries')
+        .delete()
+        .in('challenge_id', challengeIds);
+
+      if (leaderboardError) {
+        throw new Error(`Failed to delete leaderboard entries: ${leaderboardError.message}`);
+      }
+    }
+
+    // 3. Delete weekly challenges
+    const { error: challengesError } = await supabase
+      .from('weekly_challenges')
+      .delete()
+      .eq('group_id', groupId);
+
+    if (challengesError) {
+      throw new Error(`Failed to delete weekly challenges: ${challengesError.message}`);
+    }
+
+    // 4. Delete participants
+    const { error: participantsError } = await supabase
+      .from('participants')
+      .delete()
+      .eq('group_id', groupId);
+
+    if (participantsError) {
+      throw new Error(`Failed to delete participants: ${participantsError.message}`);
+    }
+
+    // 5. Finally, delete the group itself
+    const { error: groupDeleteError } = await supabase
+      .from('groups')
+      .delete()
+      .eq('id', groupId);
+
+    if (groupDeleteError) {
+      throw new Error(`Failed to delete group: ${groupDeleteError.message}`);
+    }
+  }
 }
