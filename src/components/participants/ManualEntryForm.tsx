@@ -45,6 +45,7 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
   const [steps, setSteps] = useState("");
   const [distance, setDistance] = useState("");
   const [selectedWeek, setSelectedWeek] = useState<string | null>(null);
+  const [selectedWeekName, setSelectedWeekName] = useState<string>("");
   
   // Other state
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
@@ -77,6 +78,7 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         // Set default to most recent week
         if (weekOptions.length > 0) {
           setSelectedWeek(weekOptions[0].id);
+          setSelectedWeekName(weekOptions[0].label.split('(')[0].trim());
         }
       } catch (error) {
         console.error("Error fetching weeks:", error);
@@ -90,6 +92,16 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
       fetchWeeks();
     }
   }, [groupId]);
+
+  // Track the selected week's name
+  const handleWeekChange = (weekId: string) => {
+    setSelectedWeek(weekId);
+    // Find the selected week's name/label
+    const selectedWeekOption = weeks.find(w => w.id === weekId);
+    if (selectedWeekOption) {
+      setSelectedWeekName(selectedWeekOption.label.split('(')[0].trim());
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,11 +163,13 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         points: 0 // Points will be calculated by backend or updated later
       });
       
-      // Success
+      // Success notification with more details
       toast({
-        title: "Entry Added Successfully",
-        description: `Added ${steps} steps for ${name}`,
+        title: "Entry Added Successfully ✓",
+        description: `Added ${steps} steps (${(distance || (Number(steps) * 0.0005).toFixed(2))} ${unitPreference === 'miles' ? 'mi' : 'km'}) for ${name} in Week ${selectedWeekName}`,
         variant: "default",
+        className: "bg-green-50 border-green-200 text-green-800",
+        duration: 5000 // Show for 5 seconds
       });
       
       // Reset form
@@ -189,7 +203,7 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
           <Label htmlFor="week">Week</Label>
           <Select 
             value={selectedWeek || ""} 
-            onValueChange={setSelectedWeek}
+            onValueChange={handleWeekChange}
             disabled={loading || weeks.length === 0}
           >
             <SelectTrigger className="w-full">

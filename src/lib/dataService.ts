@@ -195,6 +195,73 @@ export class DataService {
    * @param name - Participant name to search for
    * @param groupId - Group ID to filter by
    */
+  /**
+   * Delete a participant and their associated leaderboard entries
+   * @param participantId - ID of the participant to delete
+   * @param groupId - Group ID for verification
+   */
+  static async deleteParticipant(participantId: string, groupId: string) {
+    try {
+      // 1. Verify the participant belongs to the specified group
+      const { data: participant, error: verifyError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('id', participantId)
+        .eq('group_id', groupId)
+        .single();
+
+      if (verifyError || !participant) {
+        console.error('Error verifying participant:', verifyError);
+        throw new Error('Participant not found in this group');
+      }
+
+      // 2. Get all weeks where this participant has entries
+      const { data: entries, error: entriesError } = await supabase
+        .from('leaderboard_entries')
+        .select('challenge_id')
+        .eq('participant_id', participantId);
+
+      if (entriesError) {
+        console.error('Error fetching participant entries:', entriesError);
+        throw entriesError;
+      }
+
+      // 3. Delete all leaderboard entries for this participant
+      const { error: deleteEntriesError } = await supabase
+        .from('leaderboard_entries')
+        .delete()
+        .eq('participant_id', participantId);
+
+      if (deleteEntriesError) {
+        console.error('Error deleting participant entries:', deleteEntriesError);
+        throw deleteEntriesError;
+      }
+
+      // 4. Delete the participant
+      const { error: deleteParticipantError } = await supabase
+        .from('participants')
+        .delete()
+        .eq('id', participantId)
+        .eq('group_id', groupId); // Extra safety check
+
+      if (deleteParticipantError) {
+        console.error('Error deleting participant:', deleteParticipantError);
+        throw deleteParticipantError;
+      }
+
+      // 5. Recalculate points for all affected weeks
+      const affectedWeeks = [...new Set(entries?.map(entry => entry.challenge_id) || [])];
+      for (const weekId of affectedWeeks) {
+        await this.recalculatePointsForWeek(weekId);
+      }
+
+      return { success: true, affectedWeeks };
+    } catch (error) {
+      console.error('Error deleting participant:', error);
+      throw error;
+    }
+  }
+
   static async getParticipantByName(name: string, groupId: string) {
     try {
       const { data, error } = await supabase
@@ -255,10 +322,66 @@ export class DataService {
         console.error('Error creating leaderboard entry:', error);
         throw error;
       }
+      
+      // Recalculate points for all entries in this week
+      await this.recalculatePointsForWeek(entry.challenge_id);
 
       return data;
     } catch (error) {
       console.error('Error creating leaderboard entry:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recalculate points for all participants in a specific week
+   * Using inverse ranking system: 1st place gets total_participants points, 2nd gets total_participants-1, etc.
+   * @param weekId - The challenge_id of the week to recalculate
+   */
+  static async recalculatePointsForWeek(weekId: string) {
+    try {
+      // 1. Get all entries for this week, sorted by steps (descending)
+      const { data: entries, error: fetchError } = await supabase
+        .from('leaderboard_entries')
+        .select('*')
+        .eq('challenge_id', weekId)
+        .order('steps', { ascending: false });
+
+      if (fetchError) {
+        console.error('Error fetching entries for point recalculation:', fetchError);
+        throw fetchError;
+      }
+
+      if (!entries || entries.length === 0) {
+        console.warn('No entries found for point recalculation for week:', weekId);
+        return;
+      }
+
+      // 2. Calculate points based on position (inverse ranking)
+      const totalParticipants = entries.length;
+      
+      // Create updates batch with new point values
+      const updates = entries.map((entry, index) => ({
+        id: entry.id,
+        points: totalParticipants - index, // First place gets totalParticipants points, last place gets 1
+        rank: index + 1 // Update rank as well
+      }));
+
+      // 3. Update all entries with new point values
+      for (const update of updates) {
+        const { error: updateError } = await supabase
+          .from('leaderboard_entries')
+          .update({ points: update.points, rank: update.rank })
+          .eq('id', update.id);
+
+        if (updateError) {
+          console.error(`Error updating points for entry ${update.id}:`, updateError);
+        }
+      }
+
+      console.log(`Successfully recalculated points for ${totalParticipants} participants in week ${weekId}`);
+    } catch (error) {
+      console.error('Error recalculating points:', error);
       throw error;
     }
   }

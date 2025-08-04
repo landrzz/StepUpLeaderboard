@@ -11,7 +11,19 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Loader2, RefreshCw, PlusCircle } from "lucide-react";
+import { Users, Loader2, RefreshCw, PlusCircle, Trash2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import ManualEntryForm from "./ManualEntryForm";
 
 interface ParticipantManagerProps {
@@ -24,6 +36,9 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
   const [participants, setParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("view");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [participantToDelete, setParticipantToDelete] = useState<any | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   // Load participants
   useEffect(() => {
@@ -46,6 +61,49 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
     // Refresh participants list
     fetchParticipants();
     // Show success message or feedback
+  };
+
+  const handleDeleteClick = (participant: any) => {
+    setParticipantToDelete(participant);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setParticipantToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!participantToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await DataService.deleteParticipant(participantToDelete.id, groupId);
+      
+      // Show success message
+      toast({
+        title: "Participant Deleted Successfully",
+        description: `${participantToDelete.name} has been removed and points have been recalculated`,
+        variant: "default",
+        className: "bg-green-50 border-green-200 text-green-800",
+        duration: 5000
+      });
+      
+      // Refresh participant list
+      fetchParticipants();
+    } catch (error) {
+      console.error("Error deleting participant:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete participant. Please try again.",
+        variant: "destructive",
+        duration: 5000
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setParticipantToDelete(null);
+    }
   };
 
   return (
@@ -90,6 +148,7 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead className="text-right">Total Entries</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -98,6 +157,16 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
                           <TableCell className="font-medium">{participant.name}</TableCell>
                           <TableCell>{participant.email}</TableCell>
                           <TableCell className="text-right">{participant.entry_count || 0}</TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleDeleteClick(participant)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -122,6 +191,37 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" /> Delete Participant
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{participantToDelete?.name}</strong>? This will remove all their entries and recalculate points for all affected weeks.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete} disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
