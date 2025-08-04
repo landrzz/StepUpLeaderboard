@@ -144,12 +144,8 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-step-green/5 via-white to-step-teal/5">
-      {!isPublicView && (
-        <TopNavigation onSearch={(query) => console.log("Search:", query)} />
-      )}
-      <div
-        className={`flex ${!isPublicView ? "h-[calc(100vh-64px)] mt-16" : "h-screen"}`}
-      >
+      <TopNavigation onSearch={(query) => console.log("Search:", query)} />
+      <div className="flex h-[calc(100vh-64px)] mt-16">
         {!isPublicView && (
           <div className="w-[280px] h-full bg-white/80 backdrop-blur-md border-r border-step-green/20 flex flex-col">
             <div className="p-6">

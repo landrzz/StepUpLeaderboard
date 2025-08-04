@@ -14,6 +14,7 @@ import { User, Mail, Calendar, Trophy, Target, Activity, Edit, Save, X, CheckCir
 import { useAuth } from "../../../supabase/auth";
 import { UserProfileService, UserProfile, UserStats } from '../../lib/userProfileService';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface ProfileModalProps {
 const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
   const { user } = useAuth();
   const { distanceUnit, setDistanceUnit, convertDistance, getDistanceAbbreviation } = useUnitPreference();
+  const { toast } = useToast();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,6 +33,8 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [nameExists, setNameExists] = useState<boolean | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [originalDistanceUnit, setOriginalDistanceUnit] = useState<'miles' | 'kilometers'>('miles');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   if (!user) return null;
 
@@ -40,6 +44,16 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
       loadUserProfile();
     }
   }, [isOpen, user]);
+
+  // Track distance unit changes
+  useEffect(() => {
+    setOriginalDistanceUnit(distanceUnit);
+    setHasUnsavedChanges(false);
+  }, [isOpen]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(distanceUnit !== originalDistanceUnit);
+  }, [distanceUnit, originalDistanceUnit]);
 
   const loadUserProfile = async () => {
     if (!user) return;
@@ -91,6 +105,32 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
       } else {
         setUserStats(null);
       }
+    }
+    
+    setIsSaving(false);
+  };
+
+  const handleSaveDistanceUnit = async () => {
+    if (!user) return;
+    
+    setIsSaving(true);
+    const success = await UserProfileService.updateDistanceUnit(user.id, distanceUnit);
+    
+    if (success) {
+      setOriginalDistanceUnit(distanceUnit);
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Preferences saved!",
+        description: `Distance unit updated to ${distanceUnit}.`,
+        duration: 3000,
+      });
+    } else {
+      toast({
+        title: "Error saving preferences",
+        description: "Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
     }
     
     setIsSaving(false);
@@ -377,6 +417,16 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
 
           {/* Actions */}
           <div className="flex justify-end space-x-3">
+            {hasUnsavedChanges && (
+              <Button
+                onClick={handleSaveDistanceUnit}
+                disabled={isSaving}
+                className="px-6 bg-step-green hover:bg-step-green/90"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save'}
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={onClose}
