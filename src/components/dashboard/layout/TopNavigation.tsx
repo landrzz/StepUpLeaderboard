@@ -9,19 +9,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Home, Search, User } from "lucide-react";
+import { Home, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../supabase/auth";
 import ProfileModal from "../../profile/ProfileModal";
 
-interface TopNavigationProps {
-  onSearch?: (query: string) => void;
-}
+interface TopNavigationProps {}
 
-const TopNavigation = ({
-  onSearch = () => { },
-}: TopNavigationProps) => {
+const TopNavigation = ({}: TopNavigationProps) => {
   const { user, signOut } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -31,16 +26,6 @@ const TopNavigation = ({
         <Link to="/" className="text-gray-900 hover:text-gray-700 transition-colors">
           <Home className="h-5 w-5" />
         </Link>
-        {user && (
-          <div className="relative w-64">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search projects..."
-              className="pl-9 h-10 rounded-full bg-gray-100 border-0 text-sm focus:ring-2 focus:ring-gray-200 focus-visible:ring-gray-200 focus-visible:ring-offset-0"
-              onChange={(e) => onSearch(e.target.value)}
-            />
-          </div>
-        )}
       </div>
 
       <div className="flex items-center gap-4">
