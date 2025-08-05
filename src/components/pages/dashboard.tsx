@@ -141,11 +141,11 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-step-green/5 via-white to-step-teal/5">
+    <div className="min-h-screen bg-gradient-to-br from-step-green/5 via-white to-step-teal/5 dark:bg-gradient-to-br dark:from-[#1a1d35] dark:via-[#1e2139] dark:to-[#1a1d35]">
       <TopNavigation />
       <div className="flex h-[calc(100vh-64px)] mt-16">
         {!isPublicView && (
-          <div className="w-[280px] h-full bg-white/80 backdrop-blur-md border-r border-step-green/20 flex flex-col">
+          <div className="w-[280px] h-full bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md border-r border-step-green/20 dark:border-[#343856] flex flex-col">
             <div className="p-6">
               <div className="flex items-center space-x-2 mb-2">
                 <Trophy className="h-6 w-6 text-step-orange" />
@@ -157,7 +157,7 @@ const Home = () => {
                 Track your weekly step rankings!
               </p>
               {groupName && (
-                <div className="mt-3 p-2 bg-step-green/5 rounded-lg border border-step-green/20">
+                <div className="mt-3 p-2 bg-step-green/5 dark:bg-[#2a2f4a] rounded-lg border border-step-green/20 dark:border-[#343856]">
                   <p className="text-xs text-gray-400 uppercase tracking-wide">Current Group</p>
                   <p className="text-sm font-medium text-step-teal">{groupName}</p>
                 </div>
@@ -192,7 +192,7 @@ const Home = () => {
         )}
         <main className="flex-1 overflow-auto">
           {isPublicView && (
-            <div className="bg-white/90 backdrop-blur-md border-b border-step-green/20 p-4">
+            <div className="bg-white/90 dark:bg-[#252847]/90 backdrop-blur-md border-b border-step-green/20 dark:border-[#343856] p-4">
               <div className="flex items-center justify-between max-w-7xl mx-auto">
                 <div className="flex items-center space-x-3">
                   <Trophy className="h-8 w-8 text-step-orange" />

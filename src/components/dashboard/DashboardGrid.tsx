@@ -105,9 +105,9 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
   const colors = getColorClasses(color);
 
   return (
-    <Card className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+    <Card className="bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm border border-gray-100 dark:border-[#343856] rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">
+        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
           {title}
         </CardTitle>
         <div
@@ -118,8 +118,8 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
         </div>
       </CardContent>
     </Card>

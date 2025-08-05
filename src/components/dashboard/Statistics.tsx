@@ -58,9 +58,9 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
   const colors = getColorClasses(color);
 
   return (
-    <Card className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+    <div className="bg-white dark:bg-[#252847] backdrop-blur-sm border border-gray-100 dark:border-[#343856] rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">
+        <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">
           {title}
         </CardTitle>
         <div
@@ -71,11 +71,11 @@ const StatsCard = ({ title, value, subtitle, icon, color }: StatsCardProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
-          <p className="text-sm text-gray-500">{subtitle}</p>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{value}</div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{subtitle}</p>
         </div>
       </CardContent>
-    </Card>
+    </div>
   );
 };
 
@@ -242,7 +242,7 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
           <h2 className="text-2xl font-bold text-step-teal mb-2">
             Challenge Statistics
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             Loading performance data...
           </p>
         </div>
@@ -250,7 +250,7 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
           {[...Array(6)].map((_, index) => (
             <Card
               key={index}
-              className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-2xl shadow-sm h-[140px] flex items-center justify-center"
+              className="bg-white dark:!bg-[#252847] backdrop-blur-sm border border-gray-100 dark:border-[#343856] rounded-2xl shadow-sm h-[140px] flex items-center justify-center"
             >
               <div className="flex flex-col items-center justify-center p-6">
                 <div className="relative">
@@ -276,10 +276,10 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
       <div className="p-6 h-full flex items-center justify-center">
         <div className="text-center">
           <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">
+          <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
             No Statistics Available
           </h3>
-          <p className="text-gray-500">
+          <p className="text-gray-500 dark:text-gray-400">
             Upload step data to see challenge statistics
           </p>
         </div>
@@ -296,21 +296,21 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
             <h2 className="text-2xl font-bold text-step-teal mb-2">
               {currentTitle}
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               {currentSubtitle}
             </p>
           </div>
           
           {/* View Toggle Buttons */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-[#2a2f4a] rounded-lg p-1">
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('weekly')}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
                 viewMode === 'weekly'
-                  ? 'bg-white text-step-teal shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-[#343856] text-step-teal dark:text-step-green shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -322,8 +322,8 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
               onClick={() => setViewMode('overall')}
               className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
                 viewMode === 'overall'
-                  ? 'bg-white text-step-teal shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-[#343856] text-step-teal dark:text-step-green shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               <Trophy className="h-4 w-4 mr-2" />

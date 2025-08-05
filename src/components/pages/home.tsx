@@ -148,7 +148,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-step-green/10 via-white to-step-teal/10 text-gray-900">
+    <div className="light min-h-screen bg-gradient-to-br from-step-green/10 via-white to-step-teal/10 text-gray-900">
       {/* Navigation */}
       <header className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-step-green/20 shadow-sm">
         <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-6">

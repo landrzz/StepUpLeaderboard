@@ -644,13 +644,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
 
   if (loading) {
     return (
-      <div className="w-full h-full bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100">
+      <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold text-step-teal mb-2">
               Step Challenge Leaderboard
             </h2>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Weekly rankings and participant standings
             </p>
           </div>
@@ -672,13 +672,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
   }
 
   return (
-    <div className="w-full h-full bg-white/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-step-teal mb-2">
             Step Challenge Leaderboard
           </h2>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-300">
             {viewMode === 'weekly' ? 'Weekly rankings and participant standings' : 'Overall cumulative points and steps across all weeks'}
           </p>
         </div>
@@ -705,7 +705,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           )}
           
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-[#2a2f4a] rounded-lg p-1">
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
@@ -713,7 +713,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'weekly' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#343856]'
               }`}
             >
               <Calendar className="h-4 w-4 mr-2" />
@@ -726,7 +726,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
               className={`px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'overall' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#343856]'
               }`}
             >
               <Trophy className="h-4 w-4 mr-2" />
@@ -746,7 +746,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       </div>
 
       {showAdminUpload && (
-        <Card className="mb-6 p-4 bg-step-orange/5 border-step-orange/20">
+        <Card className="mb-6 p-4 bg-step-orange/5 dark:bg-[#2a2f4a] border-step-orange/20 dark:border-[#343856]">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg text-step-teal flex items-center">
               <Upload className="h-5 w-5 mr-2" />
@@ -769,13 +769,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   className="hidden"
                 />
                 <Upload className="h-12 w-12 text-step-orange/60 mx-auto mb-4" />
-                <p className="text-lg font-medium text-gray-700 mb-2">
+                <p className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">
                   {selectedFile ? selectedFile.name : 'Drop CSV file here or click to browse'}
                 </p>
-                <p className="text-sm text-gray-500 mb-3">
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                   Supported format: CSV with columns for Name, Steps, Distance (optional)
                 </p>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-left">
+                <div className="bg-amber-50 dark:bg-[#2a2f4a] border border-amber-200 dark:border-[#343856] rounded-lg p-3 text-left">
                   <p className="text-xs font-medium text-amber-800 mb-1">📅 Important Upload Requirements:</p>
                   <ul className="text-xs text-amber-700 space-y-1">
                     <li>• Include date headers (YYYY-MM-DD format) in your CSV to specify the week</li>
@@ -785,7 +785,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   </ul>
                 </div>
                 {selectedFile && (
-                  <div className="mt-4 p-3 bg-step-green/10 rounded-lg">
+                  <div className="mt-4 p-3 bg-step-green/10 dark:bg-[#2a2f4a] rounded-lg">
                     <p className="text-sm text-step-green mb-2">
                       ✓ File selected: {selectedFile.name}
                     </p>
@@ -833,7 +833,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         </Card>
       )}
 
-      <Card>
+      <Card className="bg-white dark:bg-[#252847] border-gray-200 dark:border-[#343856]">
         <Table>
           <TableHeader>
             <TableRow>
@@ -900,10 +900,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                 <TableCell colSpan={5} className="text-center py-12">
                   <div className="flex flex-col items-center justify-center">
                     <Trophy className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
                       No Participants Yet
                     </h3>
-                    <p className="text-gray-500 mb-4">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
                       {isGroupAdmin ? 'Upload step data to see the leaderboard' : 'No data available yet'}
                     </p>
                     {isGroupAdmin && (
@@ -920,7 +920,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
               </TableRow>
             ) : (
               displayParticipants.map((participant) => (
-                <TableRow key={participant.id} className="hover:bg-step-green/5">
+                <TableRow key={participant.id} className="hover:bg-step-green/5 dark:hover:bg-[#2a2f4a]">
                   <TableCell className="font-medium">
                     <div className="flex items-center justify-center">
                       {getRankIcon(participant.rank)}
@@ -940,7 +940,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                             .join("")}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-white">
                         {participant.name}
                       </span>
                     </div>

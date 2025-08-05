@@ -13,6 +13,7 @@ import { Home, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../supabase/auth";
 import ProfileModal from "../../profile/ProfileModal";
+import { ThemeToggle } from "../../ui/theme-toggle";
 
 interface TopNavigationProps {}
 
@@ -21,14 +22,15 @@ const TopNavigation = ({}: TopNavigationProps) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
-    <div className="w-full h-16 border-b border-gray-200 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 fixed top-0 z-50 shadow-sm">
+    <div className="w-full h-16 border-b border-gray-200 dark:border-[#343856] bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md flex items-center justify-between px-6 fixed top-0 z-50 shadow-sm">
       <div className="flex items-center gap-4 flex-1">
-        <Link to="/" className="text-gray-900 hover:text-gray-700 transition-colors">
+        <Link to="/" className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
           <Home className="h-5 w-5" />
         </Link>
       </div>
 
       <div className="flex items-center gap-4">
+        <ThemeToggle />
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -42,8 +44,8 @@ const TopNavigation = ({}: TopNavigationProps) => {
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-lg">
-              <DropdownMenuLabel className="text-xs text-gray-500">{user.email}</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="rounded-xl border-none shadow-lg dark:bg-[#2a2f4a] dark:border-[#343856]">
+              <DropdownMenuLabel className="text-xs text-gray-500 dark:text-gray-300">{user.email}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="cursor-pointer" 
