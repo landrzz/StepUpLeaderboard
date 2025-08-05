@@ -309,16 +309,16 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = f
   }
 
   return (
-    <div className="p-6 h-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-step-teal mb-2">
+    <div className="p-4 sm:p-6 h-full">
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-step-teal mb-2">
           Challenge Statistics
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
           {viewMode === 'weekly' ? 'Weekly performance highlights and key metrics' : 'Overall performance highlights across all weeks'}
         </p>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {/* Stats Cards */}
         {displayCards.map((card, index) => (
           <StatsCard key={index} {...card} />

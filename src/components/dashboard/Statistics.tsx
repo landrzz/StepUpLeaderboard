@@ -288,53 +288,53 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
   }
 
   return (
-    <div className="p-6 h-full">
+    <div className="p-4 sm:p-6 h-full">
       {/* Header with toggle buttons */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-step-teal mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-step-teal mb-2">
               {currentTitle}
             </h2>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               {currentSubtitle}
             </p>
           </div>
           
           {/* View Toggle Buttons */}
-          <div className="flex bg-gray-100 dark:bg-[#2a2f4a] rounded-lg p-1">
+          <div className="flex bg-gray-100 dark:bg-[#2a2f4a] rounded-lg p-1 w-full sm:w-auto">
             <Button
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('weekly')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-all flex-1 sm:flex-none ${
                 viewMode === 'weekly'
                   ? 'bg-white dark:bg-[#343856] text-step-teal dark:text-step-green shadow-sm'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Weekly
+              <Calendar className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Weekly</span>
             </Button>
             <Button
               variant={viewMode === 'overall' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => setViewMode('overall')}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-all ${
+              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-all flex-1 sm:flex-none ${
                 viewMode === 'overall'
                   ? 'bg-white dark:bg-[#343856] text-step-teal dark:text-step-green shadow-sm'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Trophy className="h-4 w-4 mr-2" />
-              Overall
+              <Trophy className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Overall</span>
             </Button>
           </div>
         </div>
       </div>
 
       {/* Statistics Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {currentStats.map((card, index) => (
           <StatsCard key={`${viewMode}-${index}`} {...card} />
         ))}

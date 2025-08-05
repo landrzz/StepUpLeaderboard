@@ -9,21 +9,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Home, User } from "lucide-react";
+import { Home, User, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../../../supabase/auth";
 import ProfileModal from "../../profile/ProfileModal";
 import { ThemeToggle } from "../../ui/theme-toggle";
 
-interface TopNavigationProps {}
+interface TopNavigationProps {
+  onMenuClick?: () => void;
+  showMenuButton?: boolean;
+}
 
-const TopNavigation = ({}: TopNavigationProps) => {
+const TopNavigation = ({ onMenuClick, showMenuButton = false }: TopNavigationProps) => {
   const { user, signOut } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
-    <div className="w-full h-16 border-b border-gray-200 dark:border-[#343856] bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md flex items-center justify-between px-6 fixed top-0 z-50 shadow-sm">
+    <div className="w-full h-16 border-b border-gray-200 dark:border-[#343856] bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 fixed top-0 z-50 shadow-sm">
       <div className="flex items-center gap-4 flex-1">
+        {showMenuButton && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
         <Link to="/" className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
           <Home className="h-5 w-5" />
         </Link>

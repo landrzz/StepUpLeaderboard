@@ -644,26 +644,26 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
 
   if (loading) {
     return (
-      <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
-        <div className="flex justify-between items-center mb-6">
+      <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-step-teal mb-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-step-teal mb-2">
               Step Challenge Leaderboard
             </h2>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               Weekly rankings and participant standings
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center justify-center min-h-[300px] sm:min-h-[400px]">
           <div className="relative">
-            <div className="h-16 w-16 rounded-full border-4 border-gray-100 border-t-step-green animate-spin" />
+            <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full border-4 border-gray-100 border-t-step-green animate-spin" />
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-6 w-6 rounded-full bg-step-green/20 animate-pulse" />
+              <div className="h-4 w-4 sm:h-6 sm:w-6 rounded-full bg-step-green/20 animate-pulse" />
             </div>
           </div>
-          <p className="text-lg font-medium text-gray-500 mt-4">
+          <p className="text-base sm:text-lg font-medium text-gray-500 dark:text-gray-400 mt-4">
             Loading leaderboard...
           </p>
         </div>
@@ -672,21 +672,21 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
   }
 
   return (
-    <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
-      <div className="flex justify-between items-center mb-6">
+    <div className="w-full h-full bg-white/90 dark:bg-[#252847]/90 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343856]">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-step-teal mb-2">
+          <h2 className="text-xl sm:text-2xl font-bold text-step-teal mb-2">
             Step Challenge Leaderboard
           </h2>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
             {viewMode === 'weekly' ? 'Weekly rankings and participant standings' : 'Overall cumulative points and steps across all weeks'}
           </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
           {/* Week Selector - only show in weekly mode */}
           {viewMode === 'weekly' && (
             <Select value={selectedWeek} onValueChange={(value) => onWeekChange(value)}>
-              <SelectTrigger className="w-64">
+              <SelectTrigger className="w-full sm:w-64">
                 <Calendar className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Select week" />
               </SelectTrigger>
@@ -696,7 +696,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   return (
                     <SelectItem key={week.id} value={week.id} className="text-sm">
-                      Week {week.weekNumber}, {week.year} ({startDate} - {endDate})
+                      <span className="hidden sm:inline">Week {week.weekNumber}, {week.year} ({startDate} - {endDate})</span>
+                      <span className="sm:hidden">W{week.weekNumber} {week.year}</span>
                     </SelectItem>
                   );
                 })}
@@ -710,36 +711,37 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
               variant={viewMode === 'weekly' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => onViewModeChange('weekly')}
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'weekly' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#343856]'
               }`}
             >
-              <Calendar className="h-4 w-4 mr-2" />
-              Weekly
+              <Calendar className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Weekly</span>
             </Button>
             <Button
               variant={viewMode === 'overall' ? 'default' : 'ghost'}
               size="sm"
               onClick={() => onViewModeChange('overall')}
-              className={`px-4 py-2 rounded-md transition-colors ${
+              className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md transition-colors ${
                 viewMode === 'overall' 
                   ? 'bg-step-green text-white hover:bg-step-green/90' 
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-[#343856]'
               }`}
             >
-              <Trophy className="h-4 w-4 mr-2" />
-              Overall
+              <Trophy className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Overall</span>
             </Button>
           </div>
           {isGroupAdmin && (
             <Button
               onClick={() => setShowAdminUpload(!showAdminUpload)}
-              className="bg-step-orange hover:bg-step-orange/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors"
+              className="bg-step-orange hover:bg-step-orange/90 text-white rounded-full px-4 h-9 shadow-sm transition-colors w-full sm:w-auto justify-center"
             >
               <Upload className="mr-2 h-4 w-4" />
-              Upload CSV
+              <span className="hidden sm:inline">Upload CSV</span>
+              <span className="sm:hidden">Upload</span>
             </Button>
           )}
         </div>
@@ -833,7 +835,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         </Card>
       )}
 
-      <Card className="bg-white dark:bg-[#252847] border-gray-200 dark:border-[#343856]">
+      {/* Desktop Table View */}
+      <Card className="bg-white dark:bg-[#252847] border-gray-200 dark:border-[#343856] hidden sm:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -962,6 +965,78 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           </TableBody>
         </Table>
       </Card>
+
+      {/* Mobile Card View */}
+      <div className="sm:hidden space-y-3">
+        {displayParticipants.length === 0 ? (
+          <Card className="bg-white dark:bg-[#252847] border-gray-200 dark:border-[#343856] p-8">
+            <div className="flex flex-col items-center justify-center text-center">
+              <Trophy className="h-16 w-16 text-gray-300 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                No Participants Yet
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                {isGroupAdmin ? 'Upload step data to see the leaderboard' : 'No data available yet'}
+              </p>
+              {isGroupAdmin && (
+                <Button
+                  onClick={() => setShowAdminUpload(true)}
+                  className="bg-step-green hover:bg-step-green/90 text-white"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload CSV Data
+                </Button>
+              )}
+            </div>
+          </Card>
+        ) : (
+          displayParticipants.map((participant) => (
+            <Card key={participant.id} className="bg-white dark:bg-[#252847] border-gray-200 dark:border-[#343856] p-4 hover:bg-step-green/5 dark:hover:bg-[#2a2f4a] transition-colors">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center">
+                    {getRankIcon(participant.rank)}
+                  </div>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={participant.avatar}
+                      alt={participant.name}
+                    />
+                    <AvatarFallback className="bg-step-green/20 text-step-teal font-medium">
+                      {participant.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-white">
+                      {participant.name}
+                    </h3>
+                  </div>
+                </div>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-step-green/20 text-step-teal">
+                  {participant.points} pts
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">Steps</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {participant.steps.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">Distance ({getDistanceAbbreviation()})</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {convertDistance(participant.distance).toFixed(1)}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
 };

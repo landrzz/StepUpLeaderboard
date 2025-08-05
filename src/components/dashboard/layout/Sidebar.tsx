@@ -1,16 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Home,
-  LayoutDashboard,
-  Calendar,
-  Users,
-  Settings,
-  HelpCircle,
-  FolderKanban,
-} from "lucide-react";
+import { Trophy, X } from "lucide-react";
 
 interface NavItem {
   icon: React.ReactNode;
@@ -23,81 +13,74 @@ interface SidebarProps {
   items?: NavItem[];
   activeItem?: string;
   onItemClick?: (label: string) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const defaultNavItems: NavItem[] = [
-  { icon: <Home size={20} />, label: "Home", isActive: true },
-  { icon: <LayoutDashboard size={20} />, label: "Dashboard" },
-  { icon: <FolderKanban size={20} />, label: "Projects" },
-  { icon: <Calendar size={20} />, label: "Calendar" },
-  { icon: <Users size={20} />, label: "Team" },
-];
-
-const defaultBottomItems: NavItem[] = [
-  { icon: <Settings size={20} />, label: "Settings" },
-  { icon: <HelpCircle size={20} />, label: "Help" },
-];
-
 const Sidebar = ({
-  items = defaultNavItems,
-  activeItem = "Home",
+  items = [],
+  activeItem = "leaderboard",
   onItemClick = () => {},
+  isOpen = false,
+  onClose = () => {},
 }: SidebarProps) => {
   return (
-    <div className="w-[280px] h-full bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md border-r border-gray-200 dark:border-[#343856] flex flex-col">
-      <div className="p-6">
-        <h2 className="text-xl font-semibold mb-2 text-gray-900">Projects</h2>
-        <p className="text-sm text-gray-500">
-          Manage your projects and tasks
+    <div className={`
+      fixed lg:static inset-y-0 left-0 z-50 w-[280px] h-full 
+      bg-white/90 dark:bg-[#252847]/95 backdrop-blur-md border-r border-gray-200 dark:border-[#343856] 
+      flex flex-col transform transition-transform duration-300 ease-in-out
+      ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+    `}>
+      {/* Header */}
+      <div className="p-6 border-b border-gray-200 dark:border-[#343856]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Trophy className="h-6 w-6 text-step-orange" />
+            <h2 className="text-xl font-semibold text-step-teal dark:text-step-green">
+              StepUp
+            </h2>
+          </div>
+          {/* Close button for mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]"
+          >
+            <X className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+          </Button>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Step Challenge Leaderboard
         </p>
       </div>
 
-      <ScrollArea className="flex-1 px-4">
-        <div className="space-y-1.5">
-          {items.map((item) => (
-            <Button
-              key={item.label}
-              variant={"ghost"}
-              className={`w-full justify-start gap-3 h-10 rounded-xl text-sm font-medium ${item.label === activeItem ? 'bg-blue-50 dark:bg-[#2a2f4a] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-[#343856]' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]'}`}
-              onClick={() => onItemClick(item.label)}
-            >
-              <span className={`${item.label === activeItem ? 'text-blue-600' : 'text-gray-500'}`}>{item.icon}</span>
-              {item.label}
-            </Button>
-          ))}
+      {/* Navigation Items */}
+      <div className="flex-1 p-4">
+        <div className="space-y-2">
+          {items.map((item) => {
+            const isActive = item.label === activeItem;
+            return (
+              <Button
+                key={item.label}
+                variant="ghost"
+                className={`w-full justify-start gap-3 h-11 rounded-xl text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-step-green/10 text-step-teal dark:bg-step-green/20 dark:text-step-green hover:bg-step-green/20 dark:hover:bg-step-green/30'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]'
+                }`}
+                onClick={() => onItemClick(item.label)}
+              >
+                <span className={`${
+                  isActive ? 'text-step-green' : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  {item.icon}
+                </span>
+                <span className="capitalize">{item.label}</span>
+              </Button>
+            );
+          })}
         </div>
-
-        <Separator className="my-4 bg-gray-100 dark:bg-[#343856]" />
-
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium px-4 py-1 text-gray-500 uppercase tracking-wider">Filters</h3>
-          <Button variant="ghost" className="w-full justify-start gap-3 h-9 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]">
-            <span className="h-2 w-2 rounded-full bg-green-500"></span>
-            Active
-          </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 h-9 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]">
-            <span className="h-2 w-2 rounded-full bg-red-500"></span>
-            High Priority
-          </Button>
-          <Button variant="ghost" className="w-full justify-start gap-3 h-9 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a]">
-            <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-            In Progress
-          </Button>
-        </div>
-      </ScrollArea>
-
-      <div className="p-4 mt-auto border-t border-gray-200">
-        {defaultBottomItems.map((item) => (
-          <Button
-            key={item.label}
-            variant="ghost"
-            className="w-full justify-start gap-3 h-10 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#2a2f4a] mb-1.5"
-            onClick={() => onItemClick(item.label)}
-          >
-            <span className="text-gray-500">{item.icon}</span>
-            {item.label}
-          </Button>
-        ))}
       </div>
     </div>
   );

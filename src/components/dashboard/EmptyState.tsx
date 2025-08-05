@@ -10,29 +10,29 @@ interface EmptyStateProps {
 
 export default function EmptyState({ onUploadClick, isGroupAdmin = false }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+    <div className="flex flex-col items-center justify-center min-h-[50vh] sm:min-h-[60vh] px-4">
       <Card className="w-full max-w-2xl">
-        <CardContent className="pt-12 pb-12 text-center">
+        <CardContent className="pt-8 sm:pt-12 pb-8 sm:pb-12 text-center">
           {/* Icon Stack */}
-          <div className="relative mb-8">
-            <div className="flex justify-center items-center space-x-4">
-              <div className="p-4 bg-step-teal/10 rounded-full">
-                <FileSpreadsheet className="h-12 w-12 text-step-teal" />
+          <div className="relative mb-6 sm:mb-8">
+            <div className="flex justify-center items-center space-x-2 sm:space-x-4">
+              <div className="p-3 sm:p-4 bg-step-teal/10 rounded-full">
+                <FileSpreadsheet className="h-8 w-8 sm:h-12 sm:w-12 text-step-teal" />
               </div>
-              <div className="p-3 bg-step-green/10 rounded-full">
-                <Users className="h-10 w-10 text-step-green" />
+              <div className="p-2 sm:p-3 bg-step-green/10 rounded-full">
+                <Users className="h-6 w-6 sm:h-10 sm:w-10 text-step-green" />
               </div>
-              <div className="p-3 bg-step-orange/10 rounded-full">
-                <Trophy className="h-10 w-10 text-step-orange" />
+              <div className="p-2 sm:p-3 bg-step-orange/10 rounded-full">
+                <Trophy className="h-6 w-6 sm:h-10 sm:w-10 text-step-orange" />
               </div>
             </div>
           </div>
 
           {/* Main Message */}
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
             {isGroupAdmin ? 'Welcome to StepUp Leaderboard!' : 'No Data Available'}
           </h2>
-          <p className="text-lg text-gray-600 mb-6 max-w-lg mx-auto">
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-6 max-w-lg mx-auto">
             {isGroupAdmin 
               ? 'Get started by uploading your first CSV file with participant step data to create your leaderboard.'
               : 'The group administrator needs to upload step data to view the leaderboard.'}
