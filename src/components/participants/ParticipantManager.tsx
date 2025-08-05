@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Loader2, RefreshCw, PlusCircle, Trash2, AlertTriangle } from "lucide-react";
+import { Users, Loader2, RefreshCw, PlusCircle, Trash2, AlertTriangle, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import {
@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import ManualEntryForm from "./ManualEntryForm";
+import EntryEditor from "./EntryEditor";
 
 interface ParticipantManagerProps {
   groupId: string;
@@ -39,6 +40,8 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [participantToDelete, setParticipantToDelete] = useState<any | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState<any | null>(null);
+  const [showEntryEditor, setShowEntryEditor] = useState(false);
   
   // Load participants
   useEffect(() => {
@@ -73,6 +76,18 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
     setParticipantToDelete(null);
   };
 
+  const handleEditEntries = (participant: any) => {
+    setSelectedParticipant(participant);
+    setShowEntryEditor(true);
+  };
+
+  const handleBackFromEditor = () => {
+    setShowEntryEditor(false);
+    setSelectedParticipant(null);
+    // Refresh participant list to show updated entry counts
+    fetchParticipants();
+  };
+  
   const handleConfirmDelete = async () => {
     if (!participantToDelete) return;
     
@@ -108,22 +123,31 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
 
   return (
     <div className="container mx-auto py-6 max-w-5xl">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-step-teal">Participant Management</h2>
-          <p className="text-gray-600">Manage participants and add manual entries</p>
-        </div>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="view">
-            <Users className="h-4 w-4 mr-2" /> View Participants
-          </TabsTrigger>
-          <TabsTrigger value="add">
-            <PlusCircle className="h-4 w-4 mr-2" /> Add Manual Entry
-          </TabsTrigger>
-        </TabsList>
+      {showEntryEditor && selectedParticipant ? (
+        <EntryEditor 
+          participantId={selectedParticipant.id}
+          participantName={selectedParticipant.name}
+          groupId={groupId}
+          onBack={handleBackFromEditor}
+        />
+      ) : (
+        <>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-step-teal">Participant Management</h2>
+              <p className="text-gray-600">Manage participants and add manual entries</p>
+            </div>
+          </div>
+          
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="view">
+                <Users className="h-4 w-4 mr-2" /> View Participants
+              </TabsTrigger>
+              <TabsTrigger value="add">
+                <PlusCircle className="h-4 w-4 mr-2" /> Add Manual Entry
+              </TabsTrigger>
+            </TabsList>
         
         <TabsContent value="view" className="space-y-4">
           <Card>
@@ -158,15 +182,27 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
                           <TableCell>{participant.email}</TableCell>
                           <TableCell className="text-right">{participant.entry_count || 0}</TableCell>
                           <TableCell className="text-right">
+                          <div className="flex justify-end space-x-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="h-8 w-8 p-0 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={() => handleEditEntries(participant)}
+                              title="Edit Entries"
+                            >
+                              <PencilLine className="h-4 w-4" />
+                            </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"
                               className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                               onClick={() => handleDeleteClick(participant)}
+                              title="Delete Participant"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
-                          </TableCell>
+                          </div>
+                        </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -191,6 +227,8 @@ const ParticipantManager: React.FC<ParticipantManagerProps> = ({ groupId }) => {
           </Card>
         </TabsContent>
       </Tabs>
+        </>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

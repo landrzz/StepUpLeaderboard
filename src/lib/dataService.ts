@@ -310,6 +310,103 @@ export class DataService {
    * Create a new leaderboard entry
    * @param entry - Leaderboard entry data to create
    */
+  /**
+   * Get leaderboard entries for a specific participant
+   * @param participantId - ID of the participant
+   * @param groupId - Group ID for verification
+   */
+  static async getParticipantEntries(participantId: string, groupId: string) {
+    try {
+      // First verify participant belongs to this group
+      const { data: participant, error: participantError } = await supabase
+        .from('participants')
+        .select('id')
+        .eq('id', participantId)
+        .eq('group_id', groupId)
+        .single();
+
+      if (participantError || !participant) {
+        console.error('Participant not found in this group:', participantError);
+        throw new Error('Participant not found in this group');
+      }
+
+      // Get all entries with week information
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .select(`
+          *,
+          challenge:weekly_challenges(
+            id,
+            week_number,
+            year,
+            week_start_date,
+            week_end_date,
+            group_id
+          )
+        `)
+        .eq('participant_id', participantId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching participant entries:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching participant entries:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update an existing leaderboard entry
+   * @param entryId - ID of the entry to update
+   * @param updates - Fields to update (steps, distance_mi)
+   * @param participantId - Participant ID for verification
+   */
+  static async updateLeaderboardEntry(
+    entryId: string,
+    updates: { steps: number; distance_mi?: number },
+    participantId: string
+  ) {
+    try {
+      // First verify this entry belongs to the participant
+      const { data: entry, error: entryError } = await supabase
+        .from('leaderboard_entries')
+        .select('challenge_id')
+        .eq('id', entryId)
+        .eq('participant_id', participantId)
+        .single();
+
+      if (entryError || !entry) {
+        console.error('Entry not found for this participant:', entryError);
+        throw new Error('Entry not found for this participant');
+      }
+
+      // Update the entry
+      const { data, error } = await supabase
+        .from('leaderboard_entries')
+        .update(updates)
+        .eq('id', entryId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating leaderboard entry:', error);
+        throw error;
+      }
+
+      // Recalculate points for this week
+      await this.recalculatePointsForWeek(entry.challenge_id);
+
+      return data;
+    } catch (error) {
+      console.error('Error updating leaderboard entry:', error);
+      throw error;
+    }
+  }
+
   static async createLeaderboardEntry(entry: LeaderboardEntry) {
     try {
       const { data, error } = await supabase
