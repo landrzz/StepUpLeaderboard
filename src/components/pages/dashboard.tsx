@@ -143,9 +143,9 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-step-green/5 via-white to-step-teal/5 dark:bg-gradient-to-br dark:from-[#1a1d35] dark:via-[#1e2139] dark:to-[#1a1d35]">
       <TopNavigation />
-      <div className="flex h-[calc(100vh-64px)] mt-16">
+      <div className="flex min-h-[calc(100vh-64px)] mt-16">
         {!isPublicView && (
-          <div className="w-[280px] h-full bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md border-r border-step-green/20 dark:border-[#343856] flex flex-col">
+          <div className="w-[280px] h-[calc(100vh-64px)] bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md border-r border-step-green/20 dark:border-[#343856] flex flex-col sticky top-16">
             <div className="p-6">
               <div className="flex items-center space-x-2 mb-2">
                 <Trophy className="h-6 w-6 text-step-orange" />
@@ -190,7 +190,7 @@ const Home = () => {
             </div>
           </div>
         )}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1">
           {isPublicView && (
             <div className="bg-white/90 dark:bg-[#252847]/90 backdrop-blur-md border-b border-step-green/20 dark:border-[#343856] p-4">
               <div className="flex items-center justify-between max-w-7xl mx-auto">
