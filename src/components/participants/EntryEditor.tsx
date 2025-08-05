@@ -87,6 +87,18 @@ const EntryEditor: React.FC<EntryEditorProps> = ({
         : entry.distance_mi
     );
   };
+  
+  // Recalculate distance when steps change
+  const handleStepsChange = (newSteps: number) => {
+    setEditSteps(newSteps);
+    // Use the same formula as ManualEntryForm: steps * 0.0005 miles
+    const distanceInMiles = Number((newSteps * 0.0005).toFixed(2));
+    // Convert to kilometers if needed
+    const distanceValue = distanceUnit === 'kilometers'
+      ? Number((distanceInMiles / 0.621371).toFixed(2))
+      : distanceInMiles;
+    setEditDistance(distanceValue);
+  };
 
   const handleCancelEdit = () => {
     setEditingEntryId(null);
@@ -189,7 +201,7 @@ const EntryEditor: React.FC<EntryEditorProps> = ({
                         <Input 
                           type="number"
                           value={editSteps}
-                          onChange={(e) => setEditSteps(Number(e.target.value))}
+                          onChange={(e) => handleStepsChange(Number(e.target.value))}
                           className="w-24 text-right"
                         />
                       ) : (
