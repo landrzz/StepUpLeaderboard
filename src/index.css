@@ -15,6 +15,16 @@
   .mobile-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+  
+  /* Force light mode for specific pages */
+  .force-light-mode {
+    color-scheme: light !important;
+    background: white !important;
+  }
+  
+  .force-light-mode * {
+    color-scheme: light !important;
+  }
 }
 
 @layer base {

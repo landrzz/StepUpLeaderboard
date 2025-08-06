@@ -697,7 +697,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
                   return (
                     <SelectItem key={week.id} value={week.id} className="text-sm">
                       <span className="hidden sm:inline">Week {week.weekNumber}, {week.year} ({startDate} - {endDate})</span>
-                      <span className="sm:hidden">W{week.weekNumber} {week.year}</span>
+                      <span className="sm:hidden">{startDate} - {endDate}</span>
                     </SelectItem>
                   );
                 })}

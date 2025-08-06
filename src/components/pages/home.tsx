@@ -148,7 +148,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="light min-h-screen bg-gradient-to-br from-step-green/10 via-white to-step-teal/10 text-gray-900">
+    <div className="force-light-mode light min-h-screen bg-gradient-to-br from-step-green/10 via-white to-step-teal/10 text-gray-900">
       {/* Navigation */}
       <header className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-step-green/20 shadow-sm">
         <div className="max-w-7xl mx-auto flex h-16 items-center justify-between px-6">
@@ -205,21 +205,11 @@ export default function LandingPage() {
                 </DropdownMenu>
               </div>
             ) : (
-              <>
-                <Link to="/login">
-                  <Button
-                    variant="ghost"
-                    className="text-step-teal hover:text-step-teal/80 font-medium"
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/login">
-                  <Button className="bg-step-orange hover:bg-step-orange/90 text-white font-medium px-6 rounded-full">
-                    Admin Login
-                  </Button>
-                </Link>
-              </>
+              <Link to="/login">
+                <Button className="bg-step-green hover:bg-step-green/90 text-white font-medium px-6 rounded-full">
+                  Sign In
+                </Button>
+              </Link>
             )}
           </div>
         </div>
