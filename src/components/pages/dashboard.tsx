@@ -21,6 +21,7 @@ const Home = () => {
   const [hasRealData, setHasRealData] = useState<boolean | null>(null); // null = loading, boolean = result
   const [showUpload, setShowUpload] = useState(false);
   const [groupName, setGroupName] = useState<string | null>(null);
+  const [groupDescription, setGroupDescription] = useState<string | null>(null);
   const [isGroupAdmin, setIsGroupAdmin] = useState<boolean>(false);
   const [selectedWeek, setSelectedWeek] = useState<string>('');
   const [viewMode, setViewMode] = useState<'weekly' | 'overall'>('weekly');
@@ -56,15 +57,18 @@ const Home = () => {
         try {
           const group = await GroupService.getGroupById(groupId);
           setGroupName(group?.name || null);
+          setGroupDescription(group?.description || null);
           // Check if current user is the group admin
           setIsGroupAdmin(user?.id === group?.created_by);
         } catch (error) {
           console.error('Error fetching group info:', error);
           setGroupName(null);
+          setGroupDescription(null);
           setIsGroupAdmin(false);
         }
       } else {
         setGroupName(null);
+        setGroupDescription(null);
         setIsGroupAdmin(false);
       }
     };
@@ -182,6 +186,8 @@ const Home = () => {
               }}
               isOpen={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
+              groupName={groupName || undefined}
+              groupDescription={groupDescription || undefined}
             />
           </>
         )}

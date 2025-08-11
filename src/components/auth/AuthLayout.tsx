@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <div className="flex items-center space-x-2">
               <Trophy className="h-6 w-6 text-step-orange" />
               <Link to="/" className="font-bold text-xl text-step-teal">
-                StepChallenge
+                Step Challenge
               </Link>
             </div>
           </div>
@@ -28,7 +28,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
             <h2 className="text-4xl font-semibold tracking-tight text-step-teal">
-              StepChallenge
+              Step Challenge
             </h2>
             <p className="text-xl font-medium text-gray-500 mt-2">
               Admin access to manage your step challenge

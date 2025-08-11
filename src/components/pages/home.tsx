@@ -155,7 +155,7 @@ export default function LandingPage() {
           <div className="flex items-center space-x-2">
             <Trophy className="h-8 w-8 text-step-orange" />
             <Link to="/" className="font-bold text-2xl text-step-teal">
-              StepChallenge
+              Step Challenge
             </Link>
           </div>
           <div className="flex items-center space-x-4">
@@ -378,7 +378,7 @@ export default function LandingPage() {
               <div className="flex items-center space-x-2 mb-4">
                 <Trophy className="h-6 w-6 text-step-orange" />
                 <h4 className="font-semibold text-step-teal text-base">
-                  StepChallenge
+                  Step Challenge
                 </h4>
               </div>
               <p className="text-gray-600 leading-relaxed">

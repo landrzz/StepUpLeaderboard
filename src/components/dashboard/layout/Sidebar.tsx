@@ -15,6 +15,8 @@ interface SidebarProps {
   onItemClick?: (label: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
+  groupName?: string;
+  groupDescription?: string;
 }
 
 const Sidebar = ({
@@ -23,6 +25,8 @@ const Sidebar = ({
   onItemClick = () => {},
   isOpen = false,
   onClose = () => {},
+  groupName,
+  groupDescription,
 }: SidebarProps) => {
   return (
     <>
@@ -49,10 +53,10 @@ const Sidebar = ({
               <Trophy className="h-6 w-6 text-step-orange" />
               <div className="flex flex-col">
                 <h2 className="text-xl font-semibold text-step-teal dark:text-step-green">
-                  StepUp
+                  {groupName || "StepUp"}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Step Challenge Leaderboard
+                  {groupDescription || "Step Challenge Leaderboard"}
                 </p>
               </div>
             </div>
