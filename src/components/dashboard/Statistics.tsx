@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Target, TrendingUp, Users, Medal, Crown, Calendar, BarChart3 } from "lucide-react";
+import { Trophy, Target, TrendingUp, Users, Medal, Crown, Calendar, BarChart3, Flame, Zap, Award, Activity, CheckCircle, Star, TrendingDown } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { DataService } from "@/lib/dataService";
 import { useUnitPreference } from "@/contexts/UnitPreferenceContext";
@@ -85,6 +85,8 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
   const [weeklyStats, setWeeklyStats] = useState<StatsCardProps[]>([]);
   const [overallStats, setOverallStats] = useState<StatsCardProps[]>([]);
   const [hasData, setHasData] = useState(false);
+  const [weeklyAnalytics, setWeeklyAnalytics] = useState<any>(null);
+  const [overallAnalytics, setOverallAnalytics] = useState<any>(null);
   const { convertDistance, getDistanceLabel, getDistanceAbbreviation } = useUnitPreference();
 
   // Fetch data when component mounts
@@ -93,130 +95,226 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
       try {
         setLoading(true);
         
-        // Fetch weekly data (current week or selected week)
-        const weeklyData = await DataService.getRealLeaderboardData(groupId, selectedWeek);
+        // Fetch enhanced analytics data
+        const [weeklyAnalyticsData, overallAnalyticsData, weeklyData, overallData] = await Promise.all([
+          DataService.getWeeklyAnalytics(groupId, selectedWeek),
+          DataService.getOverallAnalytics(groupId),
+          DataService.getRealLeaderboardData(groupId, selectedWeek),
+          DataService.getOverallLeaderboard(groupId)
+        ]);
         
-        // Fetch overall data (all weeks combined)
-        const overallData = await DataService.getOverallLeaderboard(groupId);
+        setWeeklyAnalytics(weeklyAnalyticsData);
+        setOverallAnalytics(overallAnalyticsData);
         
-        if (weeklyData.length > 0 || overallData.length > 0) {
+        if (weeklyData && weeklyData.length > 0 && weeklyAnalyticsData) {
           setHasData(true);
           
-          // Process weekly statistics
-          if (weeklyData.length > 0) {
-            const topPerformer = weeklyData[0];
-            const totalSteps = weeklyData.reduce((sum, entry) => sum + entry.steps, 0);
-            const totalDistance = weeklyData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
-            const avgStepsPerWeek = Math.round(totalSteps / weeklyData.length);
-            const avgStepsPerDay = Math.round(avgStepsPerWeek / 7);
-            const mostImproved = weeklyData[1] || weeklyData[0];
-            
-            const weeklyStatsData: StatsCardProps[] = [
-              {
-                title: "Top Performer",
-                value: topPerformer.participant?.name || "N/A",
-                subtitle: `${topPerformer.steps.toLocaleString()} steps this week`,
-                icon: <Crown className="h-5 w-5" />,
-                color: "step-orange",
-              },
-              {
-                title: "Weekly Leader",
-                value: topPerformer.participant?.name || "N/A",
-                subtitle: `${topPerformer.points || 0} points earned`,
-                icon: <Trophy className="h-5 w-5" />,
-                color: "step-green",
-              },
-              {
-                title: "Most Active",
-                value: mostImproved.participant?.name || "N/A",
-                subtitle: "Great effort this week!",
-                icon: <TrendingUp className="h-5 w-5" />,
-                color: "step-teal",
-              },
-              {
-                title: "Active Participants",
-                value: weeklyData.length.toString(),
-                subtitle: "Joined this week's challenge",
-                icon: <Users className="h-5 w-5" />,
-                color: "step-yellow",
-              },
-              {
-                title: `Total ${getDistanceLabel()}`,
-                value: `${convertDistance(totalDistance).toFixed(1)} ${getDistanceAbbreviation()}`,
-                subtitle: "Covered by all participants",
-                icon: <Target className="h-5 w-5" />,
-                color: "step-red",
-              },
-              {
-                title: "Average Steps",
-                value: avgStepsPerDay.toLocaleString(),
-                subtitle: "Per participant per day this week",
-                icon: <Medal className="h-5 w-5" />,
-                color: "step-green",
-              },
-            ];
-            
-            setWeeklyStats(weeklyStatsData);
+          // Enhanced weekly statistics using analytics data
+          const topPerformer = weeklyData[0];
+          const totalSteps = weeklyData.reduce((sum, participant) => sum + participant.steps, 0);
+          const totalDistance = weeklyData.reduce((sum, participant) => sum + participant.distance_mi, 0);
+          const avgSteps = Math.round(totalSteps / weeklyData.length);
+          
+          const weeklyStatsData: StatsCardProps[] = [
+            {
+              title: "Daily Champion",
+              value: weeklyAnalyticsData.dailyChampion.name || 'N/A',
+              subtitle: `${weeklyAnalyticsData.dailyChampion.steps?.toLocaleString() || 0} steps in one day`,
+              icon: <Crown className="h-5 w-5" />,
+              color: "step-orange"
+            },
+            {
+              title: "Most Consistent",
+              value: weeklyAnalyticsData.mostConsistent,
+              subtitle: "Steady daily performance",
+              icon: <Target className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Biggest Improver",
+              value: weeklyAnalyticsData.biggestImprover,
+              subtitle: `+${weeklyAnalyticsData.biggestImprovementSteps?.toLocaleString() || 0} steps growth`,
+              icon: <TrendingUp className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Weekend Warrior",
+              value: weeklyAnalyticsData.weekendWarrior,
+              subtitle: `${weeklyAnalyticsData.weekendSteps?.toLocaleString() || 0} weekend steps`,
+              icon: <Zap className="h-5 w-5" />,
+              color: "step-yellow"
+            },
+            {
+              title: "Weekday Hero",
+              value: weeklyAnalyticsData.weekdayHero,
+              subtitle: `${weeklyAnalyticsData.weekdaySteps?.toLocaleString() || 0} weekday steps`,
+              icon: <Activity className="h-5 w-5" />,
+              color: "step-red"
+            },
+            {
+              title: "Perfect Week",
+              value: weeklyAnalyticsData.perfectWeekCount || 0,
+              subtitle: "Participants with 7/7 days",
+              icon: <CheckCircle className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Most Active Day",
+              value: weeklyAnalyticsData.mostActiveDay.dayName || 'N/A',
+              subtitle: `${weeklyAnalyticsData.mostActiveDay.steps?.toLocaleString() || 0} group steps`,
+              icon: <Calendar className="h-5 w-5" />,
+              color: "step-orange"
+            },
+            {
+              title: "Participation Rate",
+              value: `${weeklyAnalyticsData.participationRate || 0}%`,
+              subtitle: "Weekly engagement level",
+              icon: <Users className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Week Momentum",
+              value: weeklyAnalyticsData.momentum === 'up' ? '↗️ Rising' : weeklyAnalyticsData.momentum === 'down' ? '↘️ Declining' : '➡️ Steady',
+              subtitle: "Early vs late week trend",
+              icon: weeklyAnalyticsData.momentum === 'up' ? <TrendingUp className="h-5 w-5" /> : weeklyAnalyticsData.momentum === 'down' ? <TrendingDown className="h-5 w-5" /> : <BarChart3 className="h-5 w-5" />,
+              color: weeklyAnalyticsData.momentum === 'up' ? "step-green" : weeklyAnalyticsData.momentum === 'down' ? "step-red" : "step-yellow"
+            },
+            {
+              title: "Daily Average",
+              value: avgSteps.toLocaleString(),
+              subtitle: "Steps per participant per day",
+              icon: <BarChart3 className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Goal Achievers",
+              value: `${weeklyAnalyticsData.goalAchievementRate || 0}%`,
+              subtitle: "Days with 10K+ steps",
+              icon: <Star className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: `Total Distance (${getDistanceAbbreviation()})`,
+              value: convertDistance(totalDistance).toFixed(1),
+              subtitle: "Group distance this week",
+              icon: <Medal className="h-5 w-5" />,
+              color: "step-red"
+            }
+          ];
+          
+          setWeeklyStats(weeklyStatsData);
+        }
+          
+        // Process overall statistics
+        if (overallData && overallData.length > 0 && overallAnalyticsData) {
+          // Enhanced overall statistics using analytics data
+          const overallChampion = overallData[0];
+          const totalOverallDistance = overallData.reduce((sum, participant) => sum + participant.totalDistance, 0);
+          const totalOverallSteps = overallData.reduce((sum, participant) => sum + participant.totalSteps, 0);
+          
+          // Fun distance comparisons
+          const distanceInMiles = convertDistance === ((d: number) => d) ? totalOverallDistance : totalOverallDistance * 0.621371;
+          let distanceComparison = "";
+          if (distanceInMiles > 238855) {
+            distanceComparison = "to the Moon! 🌙";
+          } else if (distanceInMiles > 24901) {
+            distanceComparison = "around Earth! 🌍";
+          } else if (distanceInMiles > 3000) {
+            distanceComparison = "across the US! 🇺🇸";
+          } else if (distanceInMiles > 1000) {
+            distanceComparison = "cross-country! 🏃";
+          } else {
+            distanceComparison = "and counting! 📈";
           }
           
-          // Process overall statistics
-          if (overallData.length > 0) {
-            const topOverallPerformer = overallData[0];
-            const totalOverallSteps = overallData.reduce((sum, entry) => sum + entry.totalSteps, 0);
-            const totalOverallDistance = overallData.reduce((sum, entry) => sum + entry.totalDistance, 0);
-            const totalWeekParticipations = overallData.reduce((sum, entry) => sum + entry.weekCount, 0);
-            const avgStepsPerParticipantPerWeek = Math.round(totalOverallSteps / totalWeekParticipations);
-            const avgStepsPerParticipantPerDay = Math.round(avgStepsPerParticipantPerWeek / 7);
-            const totalWeeks = Math.max(...overallData.map(entry => entry.weekCount));
-            const mostConsistent = overallData.find(entry => entry.weekCount === totalWeeks) || overallData[0];
-            
-            const overallStatsData: StatsCardProps[] = [
-              {
-                title: "Overall Champion",
-                value: topOverallPerformer.name || "N/A",
-                subtitle: `${topOverallPerformer.totalPoints} total points`,
-                icon: <Crown className="h-5 w-5" />,
-                color: "step-orange",
-              },
-              {
-                title: "Most Points",
-                value: topOverallPerformer.totalPoints.toString(),
-                subtitle: `Across ${topOverallPerformer.weekCount} weeks`,
-                icon: <Trophy className="h-5 w-5" />,
-                color: "step-green",
-              },
-              {
-                title: "Most Consistent",
-                value: mostConsistent.name || "N/A",
-                subtitle: `Participated in ${mostConsistent.weekCount} weeks`,
-                icon: <TrendingUp className="h-5 w-5" />,
-                color: "step-teal",
-              },
-              {
-                title: "Total Participants",
-                value: overallData.length.toString(),
-                subtitle: "Across all challenges",
-                icon: <Users className="h-5 w-5" />,
-                color: "step-yellow",
-              },
-              {
-                title: `Total ${getDistanceLabel()}`,
-                value: `${convertDistance(totalOverallDistance).toFixed(1)} ${getDistanceAbbreviation()}`,
-                subtitle: "Covered by all participants",
-                icon: <Target className="h-5 w-5" />,
-                color: "step-red",
-              },
-              {
-                title: "Average Steps",
-                value: avgStepsPerParticipantPerDay.toLocaleString(),
-                subtitle: "Per participant per day overall",
-                icon: <Medal className="h-5 w-5" />,
-                color: "step-green",
-              },
-            ];
-            
-            setOverallStats(overallStatsData);
-          }
+          const overallStatsData: StatsCardProps[] = [
+            {
+              title: "Streak Master",
+              value: overallAnalyticsData.streakMaster,
+              subtitle: `${overallAnalyticsData.longestStreak || 0} consecutive days 🔥`,
+              icon: <Flame className="h-5 w-5" />,
+              color: "step-orange"
+            },
+            {
+              title: "Perfect Weeks",
+              value: overallAnalyticsData.perfectWeeksChampion,
+              subtitle: `${overallAnalyticsData.perfectWeeksCount || 0} complete weeks`,
+              icon: <CheckCircle className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Daily Record Holder",
+              value: overallAnalyticsData.dailyRecordHolder,
+              subtitle: `${overallAnalyticsData.dailyRecord?.toLocaleString() || 0} steps in one day`,
+              icon: <Crown className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Most Dedicated",
+              value: overallAnalyticsData.mostDedicated,
+              subtitle: `${overallAnalyticsData.dedicationRate || 0}% participation rate`,
+              icon: <Award className="h-5 w-5" />,
+              color: "step-yellow"
+            },
+            {
+              title: "Average Daily Trend",
+              value: `${overallAnalyticsData.averageDailySteps?.toLocaleString() || 0}`,
+              subtitle: "Steps per person per day",
+              icon: <TrendingUp className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Peak Performance Day",
+              value: overallAnalyticsData.peakPerformanceDay,
+              subtitle: `${overallAnalyticsData.peakDaySteps?.toLocaleString() || 0} total steps`,
+              icon: <Calendar className="h-5 w-5" />,
+              color: "step-orange"
+            },
+            {
+              title: "Consistency Champion",
+              value: overallAnalyticsData.consistencyChampion,
+              subtitle: "Most steady daily performance",
+              icon: <Target className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Distance Marathon",
+              value: convertDistance(totalOverallDistance).toFixed(1),
+              subtitle: `${getDistanceAbbreviation()} ${distanceComparison}`,
+              icon: <Medal className="h-5 w-5" />,
+              color: "step-red"
+            },
+            {
+              title: "Active Days Total",
+              value: overallAnalyticsData.totalActiveDays?.toLocaleString() || '0',
+              subtitle: "Participant-days of activity",
+              icon: <Activity className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Goal Achievement Rate",
+              value: `${overallAnalyticsData.overallGoalRate || 0}%`,
+              subtitle: "Days with 10K+ steps",
+              icon: <Star className="h-5 w-5" />,
+              color: "step-green"
+            },
+            {
+              title: "Group Growth",
+              value: `${overallAnalyticsData.uniqueWeeks || 0} weeks`,
+              subtitle: "Challenge history",
+              icon: <TrendingUp className="h-5 w-5" />,
+              color: "step-teal"
+            },
+            {
+              title: "Overall Champion",
+              value: overallChampion.name || 'N/A',
+              subtitle: `${overallChampion.totalPoints || 0} total points`,
+              icon: <Trophy className="h-5 w-5" />,
+              color: "step-orange"
+            }
+          ];
+          
+          setOverallStats(overallStatsData);
         } else {
           setHasData(false);
         }
