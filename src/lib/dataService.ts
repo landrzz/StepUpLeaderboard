@@ -226,7 +226,18 @@ export class DataService {
         throw entriesError;
       }
 
-      // 3. Delete all leaderboard entries for this participant
+      // 3. Delete all daily step entries for this participant (must be done first due to foreign keys)
+      const { error: deleteDailyError } = await supabase
+        .from('daily_steps')
+        .delete()
+        .eq('participant_id', participantId);
+
+      if (deleteDailyError) {
+        console.error('Error deleting participant daily steps:', deleteDailyError);
+        throw deleteDailyError;
+      }
+
+      // 4. Delete all leaderboard entries for this participant
       const { error: deleteEntriesError } = await supabase
         .from('leaderboard_entries')
         .delete()
@@ -407,11 +418,78 @@ export class DataService {
     }
   }
 
+  /**
+   * Create a manual leaderboard entry with daily data distribution
+   * Since manual entries don't have daily granularity, we distribute the total across the week
+   */
   static async createLeaderboardEntry(entry: LeaderboardEntry) {
     try {
+      // First, get the week information to distribute daily data
+      const { data: weekInfo, error: weekError } = await supabase
+        .from('weekly_challenges')
+        .select('week_start_date, week_end_date')
+        .eq('id', entry.challenge_id)
+        .single();
+      
+      if (weekError) {
+        console.error('Error fetching week info:', weekError);
+        throw weekError;
+      }
+      
+      // Calculate daily distribution (spread total steps across 7 days)
+      const totalSteps = entry.steps || 0;
+      const totalDistance = parseFloat(entry.distance_mi?.toString() || '0');
+      const dailySteps = Math.floor(totalSteps / 7);
+      const remainderSteps = totalSteps % 7;
+      const dailyDistance = totalDistance / 7;
+      
+      // Generate dates for the week
+      const startDate = new Date(weekInfo.week_start_date);
+      const dailyEntries = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const currentDate = new Date(startDate);
+        currentDate.setDate(startDate.getDate() + i);
+        const dateStr = currentDate.toISOString().split('T')[0];
+        
+        // Add remainder steps to the first few days
+        const stepsForDay = dailySteps + (i < remainderSteps ? 1 : 0);
+        
+        dailyEntries.push({
+          participant_id: entry.participant_id,
+          challenge_id: entry.challenge_id,
+          step_date: dateStr,
+          steps: stepsForDay,
+          distance_mi: dailyDistance
+        });
+      }
+      
+      // Insert daily entries (will update existing ones if they exist)
+      for (const dailyEntry of dailyEntries) {
+        const { error: dailyError } = await supabase
+          .from('daily_steps')
+          .upsert(dailyEntry, {
+            onConflict: 'participant_id,challenge_id,step_date'
+          });
+        
+        if (dailyError) {
+          console.error('Error creating daily entry:', dailyError);
+          // Continue with other days even if one fails
+        }
+      }
+      
+      // Now create or update the weekly leaderboard entry
       const { data, error } = await supabase
         .from('leaderboard_entries')
-        .insert([entry])
+        .upsert({
+          participant_id: entry.participant_id,
+          challenge_id: entry.challenge_id,
+          steps: totalSteps,
+          distance_mi: entry.distance_mi,
+          points: entry.points || 0
+        }, {
+          onConflict: 'participant_id,challenge_id'
+        })
         .select()
         .single();
 

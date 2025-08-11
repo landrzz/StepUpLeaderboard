@@ -59,7 +59,7 @@ const defaultStatsCards: StatsCardProps[] = [
     color: "step-red",
   },
   {
-    title: "Average Steps",
+    title: "Average Weekly Step Count",
     value: "8,924",
     subtitle: "Across all participants this week",
     icon: <Medal className="h-5 w-5" />,
@@ -221,7 +221,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({ statsCards, isLoading = f
               color: "step-purple",
             },
             {
-              title: "Average Steps",
+              title: "Average Weekly Step Count",
               value: `${avgSteps.toLocaleString()}`,
               subtitle: viewMode === 'weekly' ? "steps per person this week" : "steps per person overall",
               icon: <Medal className="h-5 w-5" />,

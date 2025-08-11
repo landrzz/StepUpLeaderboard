@@ -290,8 +290,63 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
     setSelectedFile(null);
   };
 
+  // Function to analyze upload date range and detect overlaps
+  const analyzeUploadDateRange = async (csvDates: string[], groupId: string) => {
+    const { supabase } = await import('../../../supabase/supabase');
+    
+    try {
+      const startDate = csvDates[0];
+      const endDate = csvDates[csvDates.length - 1];
+      
+      // Check for existing daily data in this date range
+      const { data: existingDailyData, error } = await supabase
+        .from('daily_steps')
+        .select(`
+          step_date,
+          participant:participants!inner(name, group_id)
+        `)
+        .eq('participant.group_id', groupId)
+        .gte('step_date', startDate)
+        .lte('step_date', endDate);
+      
+      if (error) {
+        console.error('Error checking existing daily data:', error);
+        return {
+          hasOverlap: false,
+          overlappingDates: [],
+          affectedParticipants: [],
+          dateRange: { start: startDate, end: endDate },
+          strategy: 'create_new'
+        };
+      }
+      
+      const overlappingDates = [...new Set(existingDailyData?.map(d => d.step_date) || [])];
+      const affectedParticipants = [...new Set(existingDailyData?.map((d: any) => d.participant?.name).filter(Boolean) || [])];
+      
+      return {
+        hasOverlap: overlappingDates.length > 0,
+        overlappingDates,
+        affectedParticipants,
+        dateRange: { start: startDate, end: endDate },
+        strategy: overlappingDates.length > 0 ? 'update_existing' : 'create_new',
+        message: overlappingDates.length > 0 
+          ? `Found existing data for ${overlappingDates.length} days (${overlappingDates.join(', ')}). Will update with fresh data.`
+          : 'No overlapping data found. Will create new entries.'
+      };
+    } catch (error) {
+      console.error('Error analyzing date range:', error);
+      return {
+        hasOverlap: false,
+        overlappingDates: [],
+        affectedParticipants: [],
+        dateRange: { start: csvDates[0], end: csvDates[csvDates.length - 1] },
+        strategy: 'create_new'
+      };
+    }
+  };
+
   // Function to save participants with daily step data to database
-  const saveParticipantsToDatabase = async (participantsWithDailyData: any[], csvDates: string[]) => {
+  const saveParticipantsToDatabase = async (participantsWithDailyData: any[], csvDates: string[], dateAnalysis: any) => {
     const { supabase } = await import('../../../supabase/supabase');
     
     try {
@@ -527,7 +582,16 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         }
       }
       
-      console.log(`Successfully processed ${sortedParticipants.length} participants with daily data for week ${weekNumber}, ${year}`);
+      // Log summary with date range info
+      const processedDays = csvDates.length;
+      const dateRange = `${csvDates[0]} to ${csvDates[csvDates.length - 1]}`;
+      console.log(`Successfully processed ${sortedParticipants.length} participants with ${processedDays} days of data (${dateRange}) for week ${weekNumber}, ${year}`);
+      
+      if (dateAnalysis.hasOverlap) {
+        console.log(`✅ Updated existing data for ${dateAnalysis.overlappingDates.length} overlapping days`);
+      } else {
+        console.log(`✅ Created new entries for all ${processedDays} days`);
+      }
       
     } catch (error) {
       console.error('Database save error:', error);
@@ -659,15 +723,27 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       // Save to database
       console.log('Parsed participants with daily data:', participantsWithDailyData);
       
-      // Save participants and daily step data
-      await saveParticipantsToDatabase(participantsWithDailyData, dateHeaders);
+      // Analyze date range and check for existing data
+      const dateRangeAnalysis = await analyzeUploadDateRange(dateHeaders, groupId);
+      console.log('Date Range Analysis:', dateRangeAnalysis);
       
-      // Create success message with week information
-      const weekInfo = dateHeaders.length > 0
-        ? `for week ${dateHeaders[0]} to ${dateHeaders[dateHeaders.length - 1]}`
-        : 'for the current week';
+      // Save participants and daily step data with smart deduplication
+      await saveParticipantsToDatabase(participantsWithDailyData, dateHeaders, dateRangeAnalysis);
       
-      alert(`Successfully uploaded ${participantsWithDailyData.length} participants to the leaderboard ${weekInfo}!`);
+      // Create enhanced success message with overlap information
+      const dateRange = dateHeaders.length > 0
+        ? `${dateHeaders[0]} to ${dateHeaders[dateHeaders.length - 1]}`
+        : 'current week';
+      
+      let successMessage = `Successfully uploaded ${participantsWithDailyData.length} participants with ${dateHeaders.length} days of data (${dateRange})!`;
+      
+      if (dateRangeAnalysis.hasOverlap) {
+        successMessage += `\n\n📊 Smart Deduplication Applied:\n• Updated existing data for ${dateRangeAnalysis.overlappingDates.length} overlapping days\n• Affected participants: ${dateRangeAnalysis.affectedParticipants.join(', ')}`;
+      } else {
+        successMessage += `\n\n✨ All ${dateHeaders.length} days contain new data - no duplicates detected!`;
+      }
+      
+      alert(successMessage);
       
       // Reset upload state and refresh data
       setSelectedFile(null);
@@ -748,8 +824,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {availableWeeks.map((week) => {
-                  const startDate = new Date(week.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                  const endDate = new Date(week.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  // Parse dates with explicit timezone handling to avoid date shifting
+                  const startDate = new Date(week.startDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const endDate = new Date(week.endDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   return (
                     <SelectItem key={week.id} value={week.id} className="text-sm">
                       <span className="hidden sm:inline">Week {week.weekNumber}, {week.year} ({startDate} - {endDate})</span>

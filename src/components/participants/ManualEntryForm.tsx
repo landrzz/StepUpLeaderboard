@@ -62,8 +62,9 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         const availableWeeks = await DataService.getAvailableWeeks(groupId);
         const weekOptions = availableWeeks.map(week => {
           // Format date range: Monday-Sunday format
-          const startDate = new Date(week.week_start_date);
-          const endDate = new Date(week.week_end_date);
+          // Parse dates with explicit timezone handling to avoid date shifting
+          const startDate = new Date(week.week_start_date + 'T12:00:00');
+          const endDate = new Date(week.week_end_date + 'T12:00:00');
           const startFormatted = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           const endFormatted = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           
@@ -163,13 +164,16 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         points: 0 // Points will be calculated by backend or updated later
       });
       
-      // Success notification with more details
+      // Success notification with daily distribution info
+      const dailySteps = Math.floor(Number(steps) / 7);
+      const remainder = Number(steps) % 7;
+      
       toast({
-        title: "Entry Added Successfully ✓",
-        description: `Added ${steps} steps (${(distance || (Number(steps) * 0.0005).toFixed(2))} ${unitPreference === 'miles' ? 'mi' : 'km'}) for ${name} in Week ${selectedWeekName}`,
+        title: "Manual Entry Added Successfully ✓",
+        description: `Added ${steps} steps for ${name} in ${selectedWeekName}. Data distributed across 7 days (~${dailySteps}${remainder > 0 ? `-${dailySteps + 1}` : ''} steps/day) to maintain daily granularity.`,
         variant: "default",
         className: "bg-green-50 border-green-200 text-green-800",
-        duration: 5000 // Show for 5 seconds
+        duration: 7000 // Show for 7 seconds to give time to read
       });
       
       // Reset form
@@ -191,6 +195,12 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-6">
       <h3 className="text-lg font-medium mb-4">Add Manual Entry</h3>
+      
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+        <p className="text-sm text-blue-700">
+          <strong>📊 Daily Data Distribution:</strong> Manual entries are automatically distributed across all 7 days of the selected week to maintain daily granularity. This ensures compatibility with CSV uploads and daily tracking features.
+        </p>
+      </div>
       
       {error && (
         <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
@@ -231,16 +241,21 @@ const ManualEntryForm: React.FC<ManualEntryFormProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="steps">Step Count</Label>
+          <Label htmlFor="steps">Total Steps (for entire week)</Label>
           <Input
             id="steps"
             type="number"
             min="0"
             value={steps}
             onChange={(e) => setSteps(e.target.value)}
-            placeholder="Enter total steps"
+            placeholder="Enter total steps for the week"
             disabled={isSubmitting}
           />
+          {steps && Number(steps) > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Will be distributed as ~{Math.floor(Number(steps) / 7)}-{Math.floor(Number(steps) / 7) + 1} steps per day
+            </p>
+          )}
         </div>
         
         <div className="space-y-2">

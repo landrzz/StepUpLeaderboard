@@ -107,7 +107,8 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
             const topPerformer = weeklyData[0];
             const totalSteps = weeklyData.reduce((sum, entry) => sum + entry.steps, 0);
             const totalDistance = weeklyData.reduce((sum, entry) => sum + parseFloat(entry.distance_mi || '0'), 0);
-            const avgSteps = Math.round(totalSteps / weeklyData.length);
+            const avgStepsPerWeek = Math.round(totalSteps / weeklyData.length);
+            const avgStepsPerDay = Math.round(avgStepsPerWeek / 7);
             const mostImproved = weeklyData[1] || weeklyData[0];
             
             const weeklyStatsData: StatsCardProps[] = [
@@ -148,8 +149,8 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
               },
               {
                 title: "Average Steps",
-                value: avgSteps.toLocaleString(),
-                subtitle: "Across all participants this week",
+                value: avgStepsPerDay.toLocaleString(),
+                subtitle: "Per participant per day this week",
                 icon: <Medal className="h-5 w-5" />,
                 color: "step-green",
               },
@@ -163,7 +164,9 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
             const topOverallPerformer = overallData[0];
             const totalOverallSteps = overallData.reduce((sum, entry) => sum + entry.totalSteps, 0);
             const totalOverallDistance = overallData.reduce((sum, entry) => sum + entry.totalDistance, 0);
-            const avgOverallSteps = Math.round(totalOverallSteps / overallData.length);
+            const totalWeekParticipations = overallData.reduce((sum, entry) => sum + entry.weekCount, 0);
+            const avgStepsPerParticipantPerWeek = Math.round(totalOverallSteps / totalWeekParticipations);
+            const avgStepsPerParticipantPerDay = Math.round(avgStepsPerParticipantPerWeek / 7);
             const totalWeeks = Math.max(...overallData.map(entry => entry.weekCount));
             const mostConsistent = overallData.find(entry => entry.weekCount === totalWeeks) || overallData[0];
             
@@ -205,8 +208,8 @@ const Statistics = ({ isLoading = false, groupId, selectedWeek }: StatisticsProp
               },
               {
                 title: "Average Steps",
-                value: avgOverallSteps.toLocaleString(),
-                subtitle: "Per participant across all weeks",
+                value: avgStepsPerParticipantPerDay.toLocaleString(),
+                subtitle: "Per participant per day overall",
                 icon: <Medal className="h-5 w-5" />,
                 color: "step-green",
               },
