@@ -290,12 +290,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
     setSelectedFile(null);
   };
 
-  // Function to save participants to database with proper week handling
-  const saveParticipantsToDatabase = async (participants: any[], csvStartDate?: Date | null, csvEndDate?: Date | null) => {
+  // Function to save participants with daily step data to database
+  const saveParticipantsToDatabase = async (participantsWithDailyData: any[], csvDates: string[]) => {
     const { supabase } = await import('../../../supabase/supabase');
     
     try {
-      // Helper function to get Monday-Sunday week boundaries
+      // Helper function to get Monday-Sunday week boundaries from any date in the week
       const getMondayWeekBounds = (date: Date) => {
         const d = new Date(date);
         const day = d.getDay();
@@ -308,48 +308,37 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       
       // Helper function to get week number (ISO week)
       const getWeekNumber = (date: Date) => {
-        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-        const dayNum = d.getUTCDay() || 7;
-        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        // Create a new date object to avoid modifying the original
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        
+        // Set to nearest Thursday: current date + 4 - current day number
+        // Make Sunday's day number 7
+        const dayNum = d.getDay() || 7;
+        d.setDate(d.getDate() + 4 - dayNum);
+        
+        // Get first day of year
+        const yearStart = new Date(d.getFullYear(), 0, 1);
+        
+        // Calculate full weeks to nearest Thursday
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
       };
       
-      // Use CSV dates if available, otherwise fall back to current week
-      let weekStart: Date, weekEnd: Date, weekNumber: number, year: number;
+      // Calculate week boundaries from the actual CSV dates
+      const firstDate = new Date(csvDates[0] + 'T00:00:00'); // Ensure proper timezone handling
+      const lastDate = new Date(csvDates[csvDates.length - 1] + 'T00:00:00');
+      const { monday: weekStart, sunday: weekEnd } = getMondayWeekBounds(firstDate);
+      const weekNumber = getWeekNumber(firstDate);
+      const year = firstDate.getFullYear();
       
-      if (csvStartDate && csvEndDate) {
-        // Validate that CSV dates represent a Monday-Sunday week
-        const csvStart = new Date(csvStartDate);
-        const csvEnd = new Date(csvEndDate);
-        
-        // Check if it's a proper Monday-Sunday week
-        const startDay = csvStart.getDay(); // 0 = Sunday, 1 = Monday
-        const endDay = csvEnd.getDay();
-        
-        if (startDay !== 1 || endDay !== 0) {
-          console.warn('CSV dates do not represent a Monday-Sunday week. Adjusting to proper week boundaries.');
-        }
-        
-        // Use the Monday-Sunday boundaries for the CSV start date
-        const { monday, sunday } = getMondayWeekBounds(csvStart);
-        weekStart = monday;
-        weekEnd = sunday;
-        weekNumber = getWeekNumber(csvStart);
-        year = csvStart.getFullYear();
-        
-        console.log('Using CSV date range:', { csvStartDate, csvEndDate, adjustedStart: weekStart, adjustedEnd: weekEnd });
-      } else {
-        // Fall back to current week
-        const currentDate = new Date();
-        const { monday, sunday } = getMondayWeekBounds(currentDate);
-        weekStart = monday;
-        weekEnd = sunday;
-        weekNumber = getWeekNumber(currentDate);
-        year = currentDate.getFullYear();
-        
-        console.log('Using current week (no CSV dates found)');
-      }
+      console.log('CSV Date Analysis:', {
+        csvDates,
+        firstDate: firstDate.toISOString().split('T')[0],
+        lastDate: lastDate.toISOString().split('T')[0],
+        calculatedWeekStart: weekStart.toISOString().split('T')[0],
+        calculatedWeekEnd: weekEnd.toISOString().split('T')[0],
+        weekNumber,
+        year
+      });
       
       console.log('Processing week:', { weekStart, weekEnd, weekNumber, year });
       
@@ -398,8 +387,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         challenge = newChallenge;
       }
       
-      // Sort participants by steps (highest first) for proper ranking
-      const sortedParticipants = [...participants].sort((a, b) => b.steps - a.steps);
+      // Sort participants by total steps (highest first) for proper ranking
+      const sortedParticipants = [...participantsWithDailyData].sort((a, b) => b.totalSteps - a.totalSteps);
       const totalParticipants = sortedParticipants.length;
       
       // Process each participant
@@ -438,7 +427,64 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           participantData = newParticipant;
         }
         
-        // Check if leaderboard entry already exists for this week
+        // Store daily step data in the new daily_steps table
+        for (const dailyData of participant.dailyData) {
+          // Ensure proper date formatting (YYYY-MM-DD)
+          const dateStr = dailyData.date; // Already in YYYY-MM-DD format from CSV
+          
+          console.log('Processing daily data:', { date: dateStr, steps: dailyData.steps, participantName: participant.name });
+          
+          // Check if daily entry already exists
+          const { data: existingDailyEntry, error: selectError } = await supabase
+            .from('daily_steps')
+            .select('*')
+            .eq('challenge_id', challenge.id)
+            .eq('participant_id', participantData.id)
+            .eq('step_date', dateStr)
+            .single();
+          
+          if (selectError && selectError.code !== 'PGRST116') {
+            console.error('Error checking existing daily entry:', selectError);
+            continue;
+          }
+          
+          if (existingDailyEntry) {
+            // Update existing daily entry
+            const { error: updateError } = await supabase
+              .from('daily_steps')
+              .update({
+                steps: dailyData.steps,
+                distance_mi: dailyData.distance.toString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', existingDailyEntry.id);
+              
+            if (updateError) {
+              console.error('Error updating daily steps entry:', updateError);
+            } else {
+              console.log('Updated daily entry for', participant.name, 'on', dateStr);
+            }
+          } else {
+            // Create new daily entry
+            const { error: dailyError } = await supabase
+              .from('daily_steps')
+              .insert({
+                challenge_id: challenge.id,
+                participant_id: participantData.id,
+                step_date: dateStr,
+                steps: dailyData.steps,
+                distance_mi: dailyData.distance.toString()
+              });
+              
+            if (dailyError) {
+              console.error('Error creating daily steps entry:', dailyError);
+            } else {
+              console.log('Created daily entry for', participant.name, 'on', dateStr);
+            }
+          }
+        }
+        
+        // Update or create weekly leaderboard entry (aggregated from daily data)
         const { data: existingEntry } = await supabase
           .from('leaderboard_entries')
           .select('*')
@@ -451,8 +497,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
           const { error: updateError } = await supabase
             .from('leaderboard_entries')
             .update({
-              steps: participant.steps,
-              distance_mi: participant.distance.toString(),
+              steps: participant.totalSteps,
+              distance_mi: participant.totalDistance.toString(),
               points: points,
               rank: rank,
               updated_at: new Date().toISOString()
@@ -469,8 +515,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
             .insert({
               challenge_id: challenge.id,
               participant_id: participantData.id,
-              steps: participant.steps,
-              distance_mi: participant.distance.toString(),
+              steps: participant.totalSteps,
+              distance_mi: participant.totalDistance.toString(),
               points: points,
               rank: rank
             });
@@ -481,7 +527,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
         }
       }
       
-      console.log(`Successfully processed ${sortedParticipants.length} participants for week ${weekNumber}, ${year}`);
+      console.log(`Successfully processed ${sortedParticipants.length} participants with daily data for week ${weekNumber}, ${year}`);
       
     } catch (error) {
       console.error('Database save error:', error);
@@ -515,23 +561,23 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       }
       
       const rawHeaders = lines[0].split(separator);
-      const headers = rawHeaders.map(h => h.trim().toLowerCase().replace(/"/g, ''));
+      const headers = rawHeaders.map(h => h.trim().replace(/"/g, ''));
       
       console.log('Raw headers:', rawHeaders);
       console.log('Processed headers:', headers);
       
       // Find column indices with flexible matching
-      const findColumnIndex = (possibleNames: string[]) => {
-        for (const name of possibleNames) {
+      const findColumnIndex = (possibleNames: string[], caseSensitive = false) => {
+        const searchHeaders = caseSensitive ? headers : headers.map(h => h.toLowerCase());
+        const searchNames = caseSensitive ? possibleNames : possibleNames.map(n => n.toLowerCase());
+        
+        for (const name of searchNames) {
           // First try exact match
-          let index = headers.findIndex(h => h === name);
+          let index = searchHeaders.findIndex(h => h === name);
           if (index !== -1) return index;
           
-          // Then try contains match, but avoid partial matches
-          index = headers.findIndex(h => {
-            const words = h.split(' ');
-            return words.some(word => word === name) || h.includes(name);
-          });
+          // Then try contains match
+          index = searchHeaders.findIndex(h => h.includes(name));
           if (index !== -1) return index;
         }
         return -1;
@@ -541,77 +587,87 @@ const Leaderboard: React.FC<LeaderboardProps> = ({
       const stepsIndex = findColumnIndex(['total steps', 'steps', 'step count', 'step total']);
       const distanceIndex = findColumnIndex(['total distance', 'distance', 'dist']);
       
-      // Extract date range from headers (usually last two columns)
-      let weekStartDate: Date | null = null;
-      let weekEndDate: Date | null = null;
-      
-      // Look for date patterns in headers (YYYY-MM-DD format)
+      // Extract date columns from headers (YYYY-MM-DD format)
       const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-      const dateHeaders = headers.filter(h => datePattern.test(h.trim()));
+      const dateColumns = [];
+      const dateHeaders = [];
       
-      if (dateHeaders.length >= 2) {
-        // Sort dates to ensure start and end are correct
-        const sortedDates = dateHeaders.sort();
-        weekStartDate = new Date(sortedDates[0]);
-        weekEndDate = new Date(sortedDates[sortedDates.length - 1]);
-        console.log('Extracted date range from CSV:', { weekStartDate, weekEndDate });
-      } else {
-        console.log('No date headers found, will use current week');
+      for (let i = 0; i < headers.length; i++) {
+        if (datePattern.test(headers[i].trim())) {
+          dateColumns.push(i);
+          dateHeaders.push(headers[i].trim());
+        }
       }
       
-      console.log('Column indices:', { nameIndex, stepsIndex, distanceIndex });
-      console.log('Date headers found:', dateHeaders);
+      console.log('Found date columns:', { dateColumns, dateHeaders });
       
       // Validate required columns
       if (nameIndex === -1) {
         throw new Error(`Name column not found. Found columns: ${headers.join(', ')}. Expected a column containing 'name'.`);
       }
       
-      if (stepsIndex === -1) {
-        throw new Error(`Steps column not found. Found columns: ${headers.join(', ')}. Expected a column containing 'steps', 'total steps', or 'step count'.`);
+      if (dateColumns.length === 0) {
+        throw new Error(`No date columns found. Expected columns with YYYY-MM-DD format. Found columns: ${headers.join(', ')}`);
       }
 
-      // Parse data rows
-      const participants = [];
+      // Parse data rows with daily step data
+      const participantsWithDailyData = [];
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(separator).map(v => v.trim().replace(/"/g, ''));
         console.log(`Row ${i}:`, values);
-        if (values.length > Math.max(nameIndex, stepsIndex)) {
+        
+        if (values.length > nameIndex && values[nameIndex]) {
           const name = values[nameIndex];
-          const steps = parseInt(values[stepsIndex]);
-          const distance = distanceIndex >= 0 ? parseFloat(values[distanceIndex]) || 0 : steps * 0.0008; // Estimate distance
+          const totalSteps = stepsIndex >= 0 ? parseInt(values[stepsIndex]) || 0 : 0;
+          const totalDistance = distanceIndex >= 0 ? parseFloat(values[distanceIndex]) || 0 : 0;
           
-          if (name && !isNaN(steps)) {
-            participants.push({
-              name,
-              steps,
-              distance,
-              points: Math.floor(steps / 100), // 1 point per 100 steps
+          // Extract daily step data
+          const dailySteps = [];
+          let calculatedTotalSteps = 0;
+          
+          for (let j = 0; j < dateColumns.length; j++) {
+            const dateColumnIndex = dateColumns[j];
+            const date = dateHeaders[j];
+            const steps = parseInt(values[dateColumnIndex]) || 0;
+            
+            dailySteps.push({
+              date,
+              steps
             });
+            calculatedTotalSteps += steps;
           }
+          
+          // Calculate distance per day (proportional to daily steps)
+          const dailyStepsWithDistance = dailySteps.map(day => ({
+            ...day,
+            distance: calculatedTotalSteps > 0 ? (day.steps / calculatedTotalSteps) * totalDistance : 0
+          }));
+          
+          participantsWithDailyData.push({
+            name,
+            totalSteps: calculatedTotalSteps,
+            totalDistance,
+            dailyData: dailyStepsWithDistance
+          });
         }
       }
 
-      if (participants.length === 0) {
+      if (participantsWithDailyData.length === 0) {
         throw new Error('No valid participant data found in CSV file.');
       }
 
       // Save to database
-      console.log('Parsed participants:', participants);
+      console.log('Parsed participants with daily data:', participantsWithDailyData);
       
-      // For now, we'll create a simple weekly challenge and save participants
-      // In a real app, you'd want to handle groups, weekly challenges, etc. more robustly
-      
-      // Create participants and leaderboard entries
-      // Note: This is a simplified implementation
-      await saveParticipantsToDatabase(participants, weekStartDate, weekEndDate);
+      // Save participants and daily step data
+      await saveParticipantsToDatabase(participantsWithDailyData, dateHeaders);
       
       // Create success message with week information
-      const weekInfo = weekStartDate && weekEndDate 
-        ? `for week ${weekStartDate.toISOString().split('T')[0]} to ${weekEndDate.toISOString().split('T')[0]}`
+      const weekInfo = dateHeaders.length > 0
+        ? `for week ${dateHeaders[0]} to ${dateHeaders[dateHeaders.length - 1]}`
         : 'for the current week';
       
-      alert(`Successfully uploaded ${participants.length} participants to the leaderboard ${weekInfo}!`);
+      alert(`Successfully uploaded ${participantsWithDailyData.length} participants to the leaderboard ${weekInfo}!`);
       
       // Reset upload state and refresh data
       setSelectedFile(null);

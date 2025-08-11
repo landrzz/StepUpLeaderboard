@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      daily_steps: {
+        Row: {
+          challenge_id: string | null
+          created_at: string | null
+          distance_mi: number | null
+          id: string
+          participant_id: string | null
+          step_date: string
+          steps: number
+          updated_at: string | null
+        }
+        Insert: {
+          challenge_id?: string | null
+          created_at?: string | null
+          distance_mi?: number | null
+          id?: string
+          participant_id?: string | null
+          step_date: string
+          steps?: number
+          updated_at?: string | null
+        }
+        Update: {
+          challenge_id?: string | null
+          created_at?: string | null
+          distance_mi?: number | null
+          id?: string
+          participant_id?: string | null
+          step_date?: string
+          steps?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_steps_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_steps_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       groups: {
         Row: {
           created_at: string | null
