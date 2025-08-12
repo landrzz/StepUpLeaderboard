@@ -24,6 +24,14 @@ const TopNavigation = ({ onMenuClick, showMenuButton = false }: TopNavigationPro
   const { user, signOut } = useAuth();
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
   return (
     <div className="w-full h-16 border-b border-gray-200 dark:border-[#343856] bg-white/80 dark:bg-[#252847]/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 fixed top-0 z-50 shadow-sm">
       <div className="flex items-center gap-4 flex-1">
@@ -68,7 +76,22 @@ const TopNavigation = ({ onMenuClick, showMenuButton = false }: TopNavigationPro
                 Profile
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer" onSelect={() => signOut()}>
+              <DropdownMenuItem 
+                className="cursor-pointer touch-manipulation" 
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleLogout();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLogout();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleLogout();
+                }}
+              >
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

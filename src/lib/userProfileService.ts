@@ -74,22 +74,33 @@ export class UserProfileService {
 
   /**
    * Get user statistics by matching name with participants
+   * If multiple participants exist with the same name, aggregate stats across all groups
    */
   static async getUserStats(firstName: string, lastName: string): Promise<UserStats | null> {
     try {
       const fullName = `${firstName} ${lastName}`.trim();
       
-      // Find participant by name (try exact match first, then case-insensitive)
+      // Find all participants by name with group info (try exact match first, then case-insensitive)
       let { data: participants, error: participantError } = await supabase
         .from('participants')
-        .select('id, name')
+        .select(`
+          id, 
+          name, 
+          group_id,
+          group:groups(name, is_active)
+        `)
         .eq('name', fullName);
 
       // If exact match fails, try case-insensitive match
       if (participantError || !participants || participants.length === 0) {
         const result = await supabase
           .from('participants')
-          .select('id, name')
+          .select(`
+            id, 
+            name, 
+            group_id,
+            group:groups(name, is_active)
+          `)
           .ilike('name', fullName);
         
         participants = result.data;
@@ -105,10 +116,13 @@ export class UserProfileService {
         return null; // No matching participant found
       }
 
-      // Use the first matching participant (in case of duplicates)
-      const participant = participants[0];
+      // Filter to only active groups and get all participant IDs
+      const activeParticipants = participants.filter((p: any) => p.group?.is_active);
+      const participantIds = activeParticipants.length > 0 ? 
+        activeParticipants.map((p: any) => p.id) : 
+        participants.map((p: any) => p.id);
 
-      // Get all leaderboard entries for this participant
+      // Get all leaderboard entries for these participants
       const { data: entries, error: entriesError } = await supabase
         .from('leaderboard_entries')
         .select(`
@@ -120,7 +134,7 @@ export class UserProfileService {
             week_end_date
           )
         `)
-        .eq('participant_id', participant.id)
+        .in('participant_id', participantIds)
         .order('created_at', { ascending: false });
 
       if (entriesError) {
@@ -140,8 +154,8 @@ export class UserProfileService {
       const averageSteps = weeksParticipated > 0 ? Math.round(totalSteps / weeksParticipated) : 0;
       const bestWeekSteps = Math.max(...entries.map(entry => entry.steps || 0));
 
-      // Get current rank from most recent entry
-      const currentRank = entries.length > 0 ? entries[0].rank : null;
+      // Get current rank from most recent entry (best rank across all groups)
+      const currentRank = entries.length > 0 ? Math.min(...entries.map(e => e.rank || Infinity)) : null;
 
       return {
         totalSteps,
@@ -150,8 +164,8 @@ export class UserProfileService {
         weeksParticipated,
         averageSteps,
         bestWeekSteps,
-        currentRank,
-        participantId: participant.id
+        currentRank: currentRank === Infinity ? null : currentRank,
+        participantId: participantIds[0] // Use first participant ID for reference
       };
     } catch (error) {
       console.error('Error calculating user stats:', error);

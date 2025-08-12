@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, Calendar, Trophy, Target, Activity, Edit, Save, X, CheckCircle, Edit2, TrendingUp, Award, Globe } from "lucide-react";
+import { User, Mail, Calendar, Trophy, Target, Activity, Edit, Save, X, CheckCircle, Edit2, TrendingUp, Award, Globe, LogOut } from "lucide-react";
 import { useAuth } from "../../../supabase/auth";
 import { UserProfileService, UserProfile, UserStats } from '../../lib/userProfileService';
 import { useUnitPreference } from '../../contexts/UnitPreferenceContext';
@@ -22,7 +22,7 @@ interface ProfileModalProps {
 }
 
 const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { distanceUnit, setDistanceUnit, convertDistance, getDistanceAbbreviation } = useUnitPreference();
   const { toast } = useToast();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -146,6 +146,25 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
     }
     setIsEditing(false);
     setNameExists(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      onClose(); // Close the modal after logout
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
   const hasName = userProfile?.first_name && userProfile?.last_name;
@@ -336,7 +355,7 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
             <div className="space-y-4">
               <h4 className="text-lg font-semibold text-gray-900 flex items-center">
                 <Trophy className="h-5 w-5 mr-2 text-step-teal" />
-                Your Statistics
+                Your Statistics (Across all Groups)
               </h4>
               
               {isLoadingStats ? (
@@ -416,24 +435,35 @@ const ProfileModal = ({ isOpen, onClose }: ProfileModalProps) => {
           <Separator />
 
           {/* Actions */}
-          <div className="flex justify-end space-x-3">
-            {hasUnsavedChanges && (
-              <Button
-                onClick={handleSaveDistanceUnit}
-                disabled={isSaving}
-                className="px-6 bg-step-green hover:bg-step-green/90"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
-            )}
+          <div className="flex justify-between items-center">
             <Button
               variant="outline"
-              onClick={onClose}
-              className="px-6"
+              onClick={handleLogout}
+              className="px-6 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
             >
-              Close
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
             </Button>
+            
+            <div className="flex space-x-3">
+              {hasUnsavedChanges && (
+                <Button
+                  onClick={handleSaveDistanceUnit}
+                  disabled={isSaving}
+                  className="px-6 bg-step-green hover:bg-step-green/90"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Saving...' : 'Save'}
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="px-6"
+              >
+                Close
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>
